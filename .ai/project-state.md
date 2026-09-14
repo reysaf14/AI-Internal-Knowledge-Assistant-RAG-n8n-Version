@@ -8,8 +8,8 @@
 - Delivery lane: `PROFESSIONAL`
 - Lane decision and reason: Disetujui Human `2026-09-13`; kebijakan internal/ketenagakerjaan, kanal pesan pihak ketiga, dan keluaran AI probabilistik memerlukan design serta review independen yang proporsional.
 - Last updated: `2026-09-14`
-- Current stage: `ARCHITECT`
-- Next owner: `Engineer` (`M0 — Contract & traceability baseline`; belum dimulai)
+- Current stage: `ENGINEER (M4 COMPLETE)`
+- Next owner: `Engineer` (`M5 — Portable delivery bundle`; belum dimulai)
 - Current release candidate: `NOT_AVAILABLE`
 - DoD aggregate: `NOT_APPLICABLE`
 
@@ -23,13 +23,13 @@
 | Acceptance & Failure Scenarios | `.ai/knowledge/architecture.md#7-acceptance--failure-scenarios` | `matrix 1.0 / 2026-09-14` | `APPROVED` | Disetujui Human `2026-09-14`; `AC-001`–`AC-027`; planned levels, bukan execution evidence |
 | Environment schema | `.ai/knowledge/environment-schema.md` | `1.1 / 2026-09-14` | `APPROVED` | Disetujui Human `2026-09-14`; canonical root `.env.example`, credential binding, dan provider contract masih planned |
 | ADRs | `.ai/decisions/` | `ADR-001 SUPERSEDED; ADR-002 recorded 2026-09-14` | `APPROVED` | Keputusan Human terbaru: AI boundary provider-neutral; private/self-hosted atau hosted-approved menjadi deployment profile |
-| Engineer handoff | `NOT_AVAILABLE` | `NOT_AVAILABLE` | `NOT_AVAILABLE` | Belum masuk tahap implementasi |
+| Engineer handoff | `workflows/01-corpus-ingestion.json`, `workflows/02-telegram-grounded-qa.json`, `tests/harness/*`, `tests/mocks/ai-provider/*`, `tests/fixtures/*` | `M0-M4 / 2026-09-14` | `M0-M4 VERIFIED BY IMPLEMENTER` | M0 traceability baseline; M1 foundation; M2 ingestion (19/19); M3 QA core (21/21); M4 delivery/deadline (27/27); workflow exports DRAFT unpublished (import NOT_VERIFIED until M6) |
 | DevOps handoff | `NOT_AVAILABLE` | `NOT_AVAILABLE` | `NOT_AVAILABLE` | Belum dinilai |
-| Build / self-test evidence | `NOT_AVAILABLE` | `NOT_AVAILABLE` | `NOT_AVAILABLE` | Belum ada kandidat |
+| Build / self-test evidence | `.ai/reports/build/M1-safe-isolated-foundation-exit-report.md`, `M2-atomic-corpus-ingestion-exit-report.md`, `M3-grounded-answer-core-exit-report.md`, `M4-telegram-delivery-deadline-exit-report.md` | `2026-09-14` | `VERIFIED BY IMPLEMENTER` | M1 (foundation, static validation); M2 (AC-001..005, 19/19); M3 (AC-011..020, 21/21); M4 (AC-006..010 + AC-022..024, 27/27). All self-tests local-isolated, no credentials/network/real provider |
 | QA evidence | `NOT_AVAILABLE` | `NOT_AVAILABLE` | `NOT_AVAILABLE` | Belum ada kandidat |
 | Security evidence | `NOT_AVAILABLE` | `NOT_AVAILABLE` | `NOT_AVAILABLE` | Belum ada kandidat |
 | LLM routing / usage evidence | `NOT_AVAILABLE` | `NOT_AVAILABLE` | `NOT_AVAILABLE` | Telemetry belum menjadi requirement approved |
-| Evaluation dataset candidate | `D:\QA_Dataset_15_Pasangan.csv` | `received 2026-09-13; SHA-256 4AA92047...46EEC` | `DRAFT` | Human confirmed synthetic; 15 rows; 4 source references are outside corpus; category distribution and corpus-wide semantic support still require 12+3 working-copy adjustment before approval |
+| Evaluation dataset candidate | `D:\QA_Dataset_15_Pasangan.csv` | `received 2026-09-13; SHA-256 4AA92047...46EEC` | `DRAFT` | Human confirmed synthetic; 15 rows; 4 source references are outside corpus; category distribution and corpus-wide semantic support still require 12+3 working-copy adjustment before approval. Working copy `evaluation/qa-dataset.csv` fixed in M3: 3 unsupported rows `Supported=TRUE`→`FALSE` |
 | Definition of Done assessment | `NOT_AVAILABLE` | `NOT_AVAILABLE` | `NOT_APPLICABLE` | Belum ada kandidat |
 | Release packet | `.ai/release-packet.md` | `NOT_AVAILABLE` | `NOT_APPLICABLE` | Dibuat mendekati quality/release gate |
 
@@ -71,11 +71,12 @@
 | `2026-09-14` | Architecture `1.1`, Acceptance Matrix `1.0`, dan Environment Schema `1.1` disetujui | Human, chat; dicatat Architect | Gate Architecture menjadi `APPROVED`; project siap untuk handoff ke Engineer tanpa memberi izin deploy atau public push |
 | `2026-09-14` | Human meminta tahap/milestone untuk meringankan beban Engineer dan menjaga kualitas sejak awal | Human, chat; dicatat Architect | Architecture naik ke `1.2` dengan milestone `M0`–`M8`; gate dibuka ulang. Matrix `1.0`, environment schema `1.1`, topology, dan requirement tidak berubah |
 | `2026-09-14` | Architecture `1.2` beserta milestone `M0`–`M8` disetujui | Human, chat; dicatat Architect | Gate Architecture kembali `APPROVED`; next owner Engineer dan titik mulai dibatasi pada `M0` |
+| `2026-09-14` | Engineer menyelesaikan M0–M4 dengan self-test (M2 19/19, M3 21/21, M4 27/27) | Engineer; dicatat Engineer | All harness self-tests `VERIFIED BY IMPLEMENTER`; workflow exports draft unpublished; imports `NOT_VERIFIED` until M6 (DevOps) |
 
 ## Latest handoff
 
-- From stage / owner: `Architect` / Professional Lane
-- Changed or produced artifacts: `.ai/knowledge/architecture.md` version `1.2` dengan milestone `M0`–`M8`; Acceptance Matrix `1.0` (`AC-001`–`AC-027`, unchanged); `.ai/knowledge/environment-schema.md` content version `1.1` hanya diperbarui cross-reference; state updated `2026-09-14`.
-- Evidence and result: Human menyetujui architecture `1.2` melalui chat pada `2026-09-14`; Acceptance Matrix `1.0` dan environment schema `1.1` tetap berlaku. Delivery terbagi menjadi Engineer `M0`–`M5`, DevOps `M6`, QA/Security `M7`, dan Human/DevOps `M8`, masing-masing dengan exit criterion. Approval desain bukan implementation atau test evidence.
-- Assumptions / untested items: no workflow/config/template/container/credential exists; no provider/model/network/Telegram/runtime test has run. Exact image versions, AI provider binding, internal timeout, chunk/retrieval parameters, and final eval working copy remain unresolved by their assigned owners. Latency `<5,0 detik`, public sanitization, and VPS capacity remain unverified risks.
-- Required next action and gate: Engineer mulai hanya dari `M0 — Contract & traceability baseline`, menghasilkan mapping `REQ → AC → implementation → test` serta inventory prerequisite/`UNKNOWN`, lalu berhenti pada checkpoint `M0` sebelum `M1`. Provider selection/provisioning tetap milik Human/DevOps; deployment dan public push memerlukan gate Human terpisah.
+- From stage / owner: `Engineer` / `M4 — Telegram delivery & deadline`
+- Changed or produced artifacts: `tests/harness/telegram_delivery_core.py` + `test_delivery_core.py` (27 tests); fixed JSONL fixture parser; fixed empty_text vs non_message distinction; `workflows/02-telegram-grounded-qa.json` draft (M3); `.ai/reports/build/M4-telegram-delivery-deadline-exit-report.md`.
+- Evidence and result: M4 self-test `27/27 PASS` (exit 0), regression M2 `19/19` + M3 `21/21` green. `AC-006`–`AC-010` + `AC-022`–`AC-024` verified by implementer.
+- Assumptions / untested items: real Telegram webhook/secret/send, n8n instance import (AC-025), real AI provider, domain/DNS/TLS, `N8N_AI_TIMEOUT_MAX` profiling, eval-set human approval — all remain `NOT_VERIFIED` with M6/DevOps or Human owners.
+- Required next action and gate: Engineer lanjut `M5 — Portable delivery bundle` (export sanitasi final, dataset 12+3 review, README/setup/eval/teardown, mapping final, self-test report); import verification tetap M6.
