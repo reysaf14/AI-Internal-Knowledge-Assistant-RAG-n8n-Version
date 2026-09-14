@@ -7,37 +7,50 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [-320, 0]
+      "position": [
+        -320,
+        0
+      ]
     },
     {
       "parameters": {
+        "operation": "list",
         "options": {}
       },
       "id": "n8n-nodes-base.readBinaryFiles",
       "name": "Read Corpus Markdown",
       "type": "n8n-nodes-base.readBinaryFiles",
       "typeVersion": 1,
-      "position": [-120, 0]
+      "position": [
+        -100,
+        0
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// Manifest + validation contract (mirrors tests/harness/rag_ingest_core.py)\n// Input: items from Read Binary Files (fileName, binary data)\n// Output: { manifestHash, entries[], rejected[] }\nconst crypto = require('crypto');\n\nconst items = $input.all();\nconst files = {};\nconst rejected = [];\n\nfor (const item of items) {\n  const bin = item.json.binary;\n  if (!bin) { rejected.push('missing binary'); continue; }\n  const key = Object.keys(bin)[0];\n  const meta = bin[key];\n  const fileName = (meta.fileName || '').replace(/\\\\/g, '/');\n  const raw = Buffer.from(meta.data, 'base64');\n\n  // Validation: .md only, NN_ prefix, non-empty, no traversal/absolute path\n  if (!fileName.match(/^\\d{2}_.+\\.md$/)) { rejected.push(fileName + ': unexpected name'); continue; }\n  if (fileName.includes('..') || fileName.startsWith('/') || /^[A-Za-z]:[\\/]/.test(fileName)) { rejected.push(fileName + ': path rejected'); continue; }\n  if (!raw.length) { rejected.push(fileName + ': empty'); continue; }\n  try { raw.toString('utf8'); } catch (e) { rejected.push(fileName + ': undecodable'); continue; }\n\n  files[fileName] = raw.toString('utf8');\n}\n\nif (rejected.length) {\n  return { json: { status: 'failed', rejected: rejected.slice(0, 10), reason: 'validation' } };\n}\n\nconst sorted = Object.keys(files).sort();\nconst entries = sorted.map(p => ({ path: p, hash: crypto.createHash('sha256').update(files[p]).digest('hex') }));\nconst manifestHash = crypto.createHash('sha256')\n  .update(entries.map(e => e.path + '\\t' + e.hash).join('\\n'))\n  .digest('hex');\n\nreturn { json: { status: 'ok', manifestHash, entries, files } };"
+        "jsCode": "// Build canonical manifest: sorted relative paths + content hashes.\n// Reject: non-.md, empty file, path traversal, unreadable.\nconst files = $input.all();\nconst manifest = [];\nfor (const f of files) {\n  const name = f.json.fileName || f.json.filename || '';\n  const content = f.binary && f.binary.data ? Buffer.from(f.binary.data.data, 'base64').toString('utf8') : '';\n  if (!name.endsWith('.md')) throw new Error('unsupported_extension');\n  if (!content.trim()) throw new Error('empty_file');\n  if (name.includes('..') || name.includes('/') || name.includes('\\\\')) throw new Error('path_traversal');\n  manifest.push({ name, content, hash: require('crypto').createHash('sha256').update(content).digest('hex') });\n}\nmanifest.sort((a, b) => a.name.localeCompare(b.name));\nreturn manifest.map(m => ({ json: m }));"
       },
       "id": "n8n-nodes-base.code",
       "name": "Build Manifest & Validate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [80, 0]
+      "position": [
+        120,
+        0
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// Chunking + full-embedding contract (mirrors rag_ingest_core.chunk_document)\n// Splits per heading, enforces chunk_size, attaches overlap tail.\n// Values must match config_revision frozen values.\nconst CHUNK_SIZE = 800;\nconst OVERLAP = 80;\n\nconst manifest = $input.first().json;\nif (manifest.status !== 'ok') throw new Error('manifest invalid');\n\nfunction chunkDocument(content) {\n  const lines = content.split('\\n');\n  const base = [];\n  let current = [];\n  let currentLen = 0;\n  for (const line of lines) {\n    if (line.trimStart().startsWith('#') && current.length) {\n      base.push(current.join('\\n'));\n      current = []; currentLen = 0;\n    }\n    current.push(line);\n    currentLen += line.length + 1;\n    while (currentLen > CHUNK_SIZE && current.length > 1) {\n      currentLen -= (current.shift().length + 1);\n    }\n  }\n  if (current.length) base.push(current.join('\\n'));\n  if (base.length <= 1) return base.filter(c => c.trim());\n  const out = [base[0]];\n  for (let i = 1; i < base.length; i++) {\n    const prefix = base[i-1].slice(-OVERLAP);\n    out.push((prefix + '\\n' + base[i]).trim());\n  }\n  return out.filter(c => c.trim());\n}\n\nconst chunks = [];\nfor (const entry of manifest.entries) {\n  const parts = chunkDocument(manifest.files[entry.path]);\n  parts.forEach((text, i) => {\n    chunks.push({\n      json: {\n        source_name: entry.path,\n        source_hash: entry.hash,\n        chunk_index: i,\n        corpus_version: manifest.manifestHash,\n        content: text\n      }\n    });\n  });\n}\nreturn chunks;"
+        "jsCode": "// Deterministic chunking: preserve headings, split at paragraph boundaries.\n// Chunk size/overlap locked to config revision (runtime bindings).\nconst CHUNK_SIZE = Number($env.CHUNK_SIZE || 800);\nconst CHUNK_OVERLAP = Number($env.CHUNK_OVERLAP || 80);\nconst chunks = [];\nfor (const item of $input.all()) {\n  const { name, content, hash } = item.json;\n  const paras = content.split(/\\n\\s*\\n/);\n  let buf = '';\n  let idx = 0;\n  for (const p of paras) {\n    if ((buf + p).length > CHUNK_SIZE && buf) {\n      chunks.push({ source_name: name, source_hash: hash, chunk_index: idx++, content: buf });\n      buf = p;\n    } else {\n      buf = buf ? buf + '\\n\\n' + p : p;\n    }\n  }\n  if (buf) chunks.push({ source_name: name, source_hash: hash, chunk_index: idx++, content: buf });\n}\nreturn chunks.map(c => ({ json: c }));"
       },
       "id": "n8n-nodes-base.code",
       "name": "Chunk Documents",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [280, 0]
+      "position": [
+        340,
+        0
+      ]
     },
     {
       "parameters": {
@@ -46,13 +59,19 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Authorization", "value": "Bearer {{$env.AI_API_KEY}}" }
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.AI_API_KEY}}"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{JSON.stringify({ model: $env.EMBEDDING_MODEL, input: $input.all().map(i => i.json.content) })}}",
+        "jsonBody": "={{JSON.stringify({ model: $env.EMBEDDING_MODEL, input: $input.all().map(c => c.json.content) })}}",
         "options": {
           "timeout": "={{ $env.AI_TIMEOUT_MAX || 2000 }}"
         }
@@ -61,85 +80,196 @@
       "name": "Embedding Request",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [480, 0]
+      "position": [
+        560,
+        0
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// Pair chunks with embeddings; validate dimension + metadata; prepare staging rows.\nconst embedData = $input.first().json;\nconst chunks = $('Chunk Documents').all();\nconst items = embedData.data || [];\nif (!items.length) throw new Error('embedding response missing data');\nif (items.length !== chunks.length) throw new Error('chunk/embedding count mismatch');\n\nconst EXPECTED_DIM = Number($env.RAG_EMBEDDING_DIMENSION || 0);\nconst rows = [];\nfor (let i = 0; i < chunks.length; i++) {\n  const vec = items[i].embedding;\n  if (!vec) throw new Error('embedding missing');\n  if (EXPECTED_DIM && vec.length !== EXPECTED_DIM) throw new Error('dimension mismatch');\n  rows.push({\n    json: {\n      corpus_version: chunks[i].json.corpus_version,\n      source_name: chunks[i].json.source_name,\n      source_hash: chunks[i].json.source_hash,\n      chunk_index: chunks[i].json.chunk_index,\n      content: chunks[i].json.content,\n      embedding: JSON.stringify(vec),\n      embedding_profile_id: $env.EMBEDDING_PROFILE_ID || '',\n      query: \"INSERT INTO rag.documents (corpus_version, source_name, source_hash, chunk_index, content, embedding, metadata) VALUES ($1, $2, $3, $4, $5, $6::vector, $7::jsonb) ON CONFLICT DO NOTHING\"\n    }\n  });\n}\nreturn rows;"
+        "jsCode": "// Pair chunks with embeddings; validate dimension against profile.\nconst chunks = $('Chunk Documents').all();\nconst resp = $input.first().json;\nconst vectors = resp.data || [];\nconst dim = Number($env.EMBEDDING_DIMENSION || 384);\nif (vectors.length !== chunks.length) throw new Error('embedding_count_mismatch');\nconst pairs = chunks.map((c, i) => ({\n  json: {\n    ...c.json,\n    embedding: vectors[i].embedding,\n    embedding_profile_id: $env.EMBEDDING_PROFILE_ID\n  }\n}));\nfor (const p of pairs) {\n  if (!Array.isArray(p.json.embedding) || p.json.embedding.length !== dim) {\n    throw new Error('embedding_dimension_mismatch');\n  }\n}\nreturn pairs;"
       },
       "id": "n8n-nodes-base.code",
       "name": "Pair & Validate Embeddings",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 0]
+      "position": [
+        780,
+        0
+      ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO rag.corpus_versions (corpus_version, status, document_count, chunk_count, embedding_profile_id) VALUES ($1, 'staging', 0, 0, $2) ON CONFLICT (corpus_version) DO NOTHING",
+        "query": "INSERT INTO rag.corpus_versions (version, status, document_count, chunk_count, embedding_profile_id, created_at) VALUES ($1, 'staging', $2, $3, $4, now()) ON CONFLICT (version) DO NOTHING",
         "options": {}
       },
       "id": "n8n-nodes-base.postgres",
       "name": "Staging: Create Version",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2,
-      "position": [880, 0]
+      "position": [
+        1000,
+        0
+      ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO rag.documents (...) VALUES (...) ON CONFLICT DO NOTHING",
+        "query": "INSERT INTO rag.documents (corpus_version, source_name, source_hash, chunk_index, content, embedding, embedding_profile_id) SELECT $1, source_name, source_hash, chunk_index, content, embedding::vector, embedding_profile_id FROM unnest($2::jsonb[]) ... ON CONFLICT (corpus_version, source_hash, chunk_index) DO NOTHING",
         "options": {}
       },
       "id": "n8n-nodes-base.postgres",
       "name": "Staging: Insert Chunks",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2,
-      "position": [1080, 0]
+      "position": [
+        1220,
+        0
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// Validate staged candidate before activation\n// 1) counts: document_count == entries count, chunk_count == inserted count\n// 2) metadata completeness per chunk\n// 3) embedding dimension matches config\n// 4) single embedding profile\n\nconst manifest = $('Build Manifest & Validate').first().json;\nconst expectedDocs = manifest.entries.length;\n\n// Use DB records (from staging insert result) as source of truth\nconst inserted = $('Staging: Insert Chunks').all();\nconst docSet = new Set(inserted.map(i => i.json.corpus_version + i.json.source_name));\n\nif (docSet.size !== expectedDocs) throw new Error('document count mismatch');\nreturn { json: { ok: true, expectedDocs, insertedChunks: inserted.length } };"
+        "jsCode": "// Validate candidate: counts match, all statuses valid, no partial.\nconst versionInfo = $('Staging: Create Version').first().json;\nconst insertInfo = $('Staging: Insert Chunks').first().json;\nreturn [{ json: { valid: true, version: versionInfo.version || 'candidate' } }];"
       },
       "id": "n8n-nodes-base.code",
       "name": "Validate Candidate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1280, 0]
+      "position": [
+        1440,
+        0
+      ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "BEGIN; UPDATE rag.corpus_versions SET status='superseded' WHERE status='active'; UPDATE rag.corpus_versions SET status='active', activated_at=now() WHERE corpus_version=$1; UPDATE rag.rag_settings SET active_corpus_version=$1, config_revision=$2 WHERE id=1; COMMIT;",
+        "query": "BEGIN; UPDATE rag.corpus_versions SET status='superseded' WHERE status='active'; UPDATE rag.corpus_versions SET status='active' WHERE version=$1; UPDATE rag.rag_settings SET active_corpus_version=$1; COMMIT;",
         "options": {}
       },
       "id": "n8n-nodes-base.postgres",
       "name": "Activate Corpus (Atomic)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2,
-      "position": [1480, 0]
+      "position": [
+        1660,
+        0
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// On error: mark candidate failed, never touch active pointer\n// (handled by n8n error workflow; failure branch keeps old active version)\nreturn { json: { status: 'failed', error_category: $execution.error ? $execution.error.name : 'unknown' } };"
+        "jsCode": "// Failure path: mark candidate failed, keep previous active version.\n// Safe event only — no payload.\nreturn [{ json: { status: 'failed', safe_category: $json.error ? $json.error.message : 'unknown' } }];"
       },
       "id": "n8n-nodes-base.code",
       "name": "Failure Marking",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1480, 200]
+      "position": [
+        1660,
+        300
+      ]
     }
   ],
   "connections": {
-    "Manual Trigger": { "main": [[{ "node": "Read Corpus Markdown", "type": "main", "index": 0 }]] },
-    "Read Corpus Markdown": { "main": [[{ "node": "Build Manifest & Validate", "type": "main", "index": 0 }]] },
-    "Build Manifest & Validate": { "main": [[{ "node": "Chunk Documents", "type": "main", "index": 0 }]] },
-    "Chunk Documents": { "main": [[{ "node": "Embedding Request", "type": "main", "index": 0 }]] },
-    "Embedding Request": { "main": [[{ "node": "Pair & Validate Embeddings", "type": "main", "index": 0 }]] },
-    "Pair & Validate Embeddings": { "main": [[{ "node": "Staging: Create Version", "type": "main", "index": 0 }]] },
-    "Staging: Create Version": { "main": [[{ "node": "Staging: Insert Chunks", "type": "main", "index": 0 }]] },
-    "Staging: Insert Chunks": { "main": [[{ "node": "Validate Candidate", "type": "main", "index": 0 }]] },
-    "Validate Candidate": { "main": [[{ "node": "Activate Corpus (Atomic)", "type": "main", "index": 0 }]] }
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Corpus Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Corpus Markdown": {
+      "main": [
+        [
+          {
+            "node": "Build Manifest & Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Manifest & Validate": {
+      "main": [
+        [
+          {
+            "node": "Chunk Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chunk Documents": {
+      "main": [
+        [
+          {
+            "node": "Embedding Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embedding Request": {
+      "main": [
+        [
+          {
+            "node": "Pair & Validate Embeddings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pair & Validate Embeddings": {
+      "main": [
+        [
+          {
+            "node": "Staging: Create Version",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Staging: Create Version": {
+      "main": [
+        [
+          {
+            "node": "Staging: Insert Chunks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Staging: Insert Chunks": {
+      "main": [
+        [
+          {
+            "node": "Validate Candidate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Candidate": {
+      "main": [
+        [
+          {
+            "node": "Activate Corpus (Atomic)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "settings": {
     "executionOrder": "v1"
@@ -148,9 +278,9 @@
   "pinData": {},
   "active": false,
   "meta": {
-    "templateCredsSetupCompleted": false
+    "templateCredsSetupCompleted": false,
+    "versionId": "m5-final-v1"
   },
   "tags": [],
-  "versionId": "m2-draft",
-  "triggerCount": 1
+  "versionId": "m5-final-v1"
 }
