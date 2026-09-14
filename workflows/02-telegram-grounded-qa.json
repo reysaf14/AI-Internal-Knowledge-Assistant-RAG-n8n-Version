@@ -390,7 +390,8 @@
   "pinData": {},
   "active": false,
   "meta": {
-    "templateCredsSetupCompleted": false
+    "templateCredsSetupCompleted": false,
+    "versionId": "m5-final-v1"
   },
   "tags": [],
   "versionId": "m5-final-v1"
