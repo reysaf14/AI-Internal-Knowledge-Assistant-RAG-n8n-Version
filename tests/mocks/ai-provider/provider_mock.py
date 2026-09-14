@@ -18,8 +18,11 @@
 #   MOCK_CHAT_MODEL        chat model id        (default mock-chat-model-v1)
 #   MOCK_EMBEDDING_MODEL   embedding model id   (default mock-embedding-model-v1)
 #   MOCK_EMBEDDING_DIM     embedding dimension  (default 384)
-#   MOCK_EMBED_DELAY_MS    artificial delay     (default 0) -> timeout tests
-#   MOCK_EMBED_STATUS      HTTP status override (default 0 = ok) -> auth/5xx tests
+#   MOCK_EMBED_DELAY_MS    embedding delay      (default 0) -> ingest timeout tests
+#   MOCK_EMBED_STATUS      embedding status     (default 0 = ok) -> auth/5xx tests
+#   MOCK_CHAT_DELAY_MS     chat delay           (default 0) -> Q&A timeout tests
+#   MOCK_CHAT_STATUS       chat status          (default 0 = ok) -> Q&A provider fail
+#   MOCK_CHAT_GARBLED      return bad JSON      (default false) -> malformed output tests
 #   MOCK_EXPECTED_TOKEN    require Bearer <token> if set -> auth tests
 #   MOCK_LOG               true to log requests (default false)
 #
@@ -31,6 +34,7 @@
 import hashlib
 import json
 import os
+import re
 import socket
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -65,9 +69,18 @@ DETERMINISTIC_RESPONSES = {
         "Wajib surat keterangan dokter atau puskesmas. [CITATION:0]",
         ["20_Kebijakan_Cuti_dan_Izin_Karyawan.md"],
     ),
-    "berapa bonus bulanan jika pencapaian penjualan 115%": (
-        "Bonus Rp 1.000.000 (pencapaian 111-120%). [CITATION:0]",
-        ["24_Kebijakan_Bonus_dan_Insentif_Penjualan.md"],
+    "apa kebijakan retur dan tukar barang": (
+        "Barang dapat dikembalikan/ditukar sesuai kebijakan retur yang berlaku di toko. [CITATION:0]",
+        ["11_FAQ_Kebijakan_Retur_dan_Tukar_Barang.md"],
+    ),
+    "bagaimana cara mengajukan komplain barang rusak": (
+        "Ajukan komplain melalui prosedur yang ditetapkan, lampirkan bukti transaksi "
+        "dan kondisi barang. [CITATION:0]",
+        ["16_Panduan_Komplain_Barang_Rusak.md"],
+    ),
+    "apa yang harus dilakukan jika pengantaran terlambat": (
+        "Ikuti panduan komplain keterlambatan pengantaran sesuai prosedur yang berlaku. [CITATION:0]",
+        ["18_Panduan_Komplain_Keterlambatan_Pengantaran.md"],
     ),
     "apakah toko menyediakan parkir untuk pelanggan": (
         "Ya, parkir motor 20 unit dan mobil 5 unit di depan toko, gratis 2 jam pertama. [CITATION:0]",
@@ -88,19 +101,6 @@ DETERMINISTIC_RESPONSES = {
         "Jalan Merdeka No. 123, Jakarta Pusat, dekat Stasiun Merdeka. [CITATION:0]",
         ["00_Company_Profile_Toko_Makmur_Jaya.md"],
     ),
-    "apa syarat mendapatkan bonus tahunan (thr + performance)": (
-        "Karyawan status tetap, minimal 6 bulan kerja, tidak ada sanksi berat tahun "
-        "berjalan. THR 1x gaji pokok, performance bonus 0.5-2x gaji pokok. [CITATION:0]",
-        ["24_Kebijakan_Bonus_dan_Insentif_Penjualan.md"],
-    ),
-    "berapa lama cuti melahirkan yang diberikan": (
-        "3 bulan (1,5 bulan sebelum dan 1,5 bulan setelah melahirkan) sesuai UU. [CITATION:0]",
-        ["20_Kebijakan_Cuti_dan_Izin_Karyawan.md"],
-    ),
-    "apa yang harus dilakukan jika lantai basah di area kerja": (
-        "Pasang tanda 'Hati-hati Lantai Licin' secara wajib. [CITATION:0]",
-        ["25_Kebijakan_Keselamatan_Kerja_K3_Sederhana.md"],
-    ),
 }
 
 UNSUPPORTED_ANSWER = "Informasi tidak ditemukan di dokumen resmi."
@@ -119,12 +119,23 @@ def _now_ms():
 
 
 def deterministic_embedding(text: str, dim: int):
-    """Deterministic pseudo-random unit vector derived from text hash."""
-    digest = hashlib.sha256(text.encode("utf-8")).digest()
-    vector = []
-    for i in range(dim):
-        val = (digest[i % len(digest)] / 255.0) * 2.0 - 1.0
-        vector.append(val)
+    """Deterministic semantic-ish embedding: hashed bag-of-words + L2 norm.
+
+    Texts sharing tokens get high cosine similarity (mimics real embedding
+    models); unrelated texts get ~0. Deterministic for the same input.
+    """
+    STOPWORDS = {
+        "yang", "dan", "di", "ke", "dari", "apa", "bagaimana", "apakah",
+        "untuk", "dengan", "atau", "ini", "itu", "adalah", "tidak", "akan",
+        "bisa", "dapat", "pada", "per", "juga", "sudah", "belum", "secara",
+        "tersebut", "sebuah", "saya", "anda", "kami", "mereka", "atau",
+        "dalam", "oleh", "agar", "jika", "karena", "maka", "serta",
+    }
+    tokens = [t for t in re.findall(r"[a-z0-9]+", text.lower()) if t not in STOPWORDS]
+    vector = [0.0] * dim
+    for t in set(tokens):
+        slot = int(hashlib.sha256(t.encode("utf-8")).hexdigest()[:8], 16) % dim
+        vector[slot] = 1.0  # binary bag-of-words
     norm = sum(v * v for v in vector) ** 0.5
     if norm > 0:
         vector = [v / norm for v in vector]
@@ -209,11 +220,31 @@ class MockHandler(BaseHTTPRequestHandler):
             })
         if path == "/v1/chat/completions":
             model = _env("MOCK_CHAT_MODEL", "mock-chat-model-v1")
+            # fault injection: chat status override first (auth/5xx tests)
+            chat_status = int(_env("MOCK_CHAT_STATUS", "0"))
+            if chat_status:
+                return self._send(
+                    chat_status,
+                    _error_body("Injected chat failure", "injected_error", str(chat_status)),
+                )
+            # fault injection: artificial delay (timeout tests)
+            chat_delay = int(_env("MOCK_CHAT_DELAY_MS", "0"))
+            if chat_delay > 0:
+                time.sleep(chat_delay / 1000.0)
             messages = (body or {}).get("messages", [])
             question = ""
             for msg in messages:
                 if msg.get("role") == "user":
                     question = msg.get("content", "")
+            # fault injection: garbled/malformed output
+            if _env("MOCK_CHAT_GARBLED", "false").lower() == "true":
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                raw = b"{invalid json\" choices\""
+                self.send_header("Content-Length", str(len(raw)))
+                self.end_headers()
+                self.wfile.write(raw)
+                return
             answer, sources = _find_chat_response(question)
             payload = {
                 "id": f"chatcmpl-mock-{_now_ms()}",
@@ -306,4 +337,7 @@ if __name__ == "__main__":
     print(f"  embedding dim   : {_env('MOCK_EMBEDDING_DIM', '384')}")
     print(f"  fault status    : {_env('MOCK_EMBED_STATUS', '0')} (0=ok)")
     print(f"  fault delay ms  : {_env('MOCK_EMBED_DELAY_MS', '0')}")
+    print(f"  chat status     : {_env('MOCK_CHAT_STATUS', '0')} (0=ok)")
+    print(f"  chat delay ms   : {_env('MOCK_CHAT_DELAY_MS', '0')}")
+    print(f"  chat garbled    : {_env('MOCK_CHAT_GARBLED', 'false')}")
     serve(PORT, host="0.0.0.0")
