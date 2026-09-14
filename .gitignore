@@ -1,0 +1,87 @@
+# =============================================================================
+# Asisten Pengetahuan Internal Toko Makmur Jaya — .gitignore
+# Environment Schema version: 1.1
+# =============================================================================
+# Root .gitignore — minimal with .env* pattern and exception for .env.example
+# All nested env, private-network config/key, credential export, n8n data,
+# database dump, ACME state, raw screenshot/evidence sensitif added explicitly.
+# =============================================================================
+
+# Environment files (secret-containing)
+.env
+.env.*
+!.env.example
+
+# Docker / build artifacts
+.docker/
+docker-compose.override.yml
+*.dockerignore
+
+# n8n runtime data (contains encrypted credentials, execution data)
+.n8n/
+n8n_data/
+.n8n.config.json
+
+# Database dumps & volumes
+*.dump
+*.sql.dump
+postgres_data/
+pgvector_data/
+
+# ACME / TLS certificates (Caddy)
+acme/
+.caddy/
+caddy_data/
+caddy_config/
+
+# Private network / tunnel config & keys (WireGuard, Tailscale, etc.)
+wg*.conf
+*.key
+*.pem
+*.crt
+private-network/
+
+# Credential exports / backups (never commit)
+*credential*.json
+*credential*.yaml
+*credential*.yml
+secrets/
+*.secret
+
+# Test / evidence artifacts (raw/sensitive)
+.ai/reports/qa/raw/
+.ai/reports/build/raw/
+*.pcap
+*.har
+screenshots/
+*.png
+*.jpg
+*.jpeg
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+*.log
+
+# Python / virtualenv
+__pycache__/
+*.pyc
+venv/
+.env.venv
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
