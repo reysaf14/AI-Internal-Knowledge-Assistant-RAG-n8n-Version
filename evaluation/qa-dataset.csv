@@ -5,23 +5,31 @@
 # Human must approve after corpus-wide semantic verification before QA.
 # Source candidate: D:\QA_Dataset_15_Pasangan.csv (SHA-256: 4AA92047BE3C7933586207DE068AC8711672700F54DB6D4BD69A7C1B14646EEC)
 # =============================================================================
+# M5 REVISION: corrected working copy to 12+3 per approved distribution
+#   (3 SOP / 3 FAQ / 2 Panduan / 3 Kebijakan / 1 Profil = 12 supported)
+# Changes vs M3 copy:
+#   - Removed 4 surplus Kebijakan rows (bonus bulanan, syarat bonus tahunan,
+#     cuti melahirkan, lantai basah) to restore target distribution
+#   - Added 1 FAQ (retur, from 11_FAQ_Kebijakan_Retur_dan_Tukar_Barang.md)
+#   - Added 2 Panduan (16 komplain barang rusak, 18 keterlambatan pengantaran)
+#   - Supported flags corrected (3 unsupported now FALSE)
+#   - All source labels point to approved corpus files (00..25)
 # Format: Pertanyaan | Jawaban_Benar | Dokumen_Sumber | Kategori | Supported
 # =============================================================================
 
 Pertanyaan,Jawaban_Benar,Dokumen_Sumber,Kategori,Supported
 "Jam berapa toko buka hari Senin?","Toko buka pukul 08:00 pada hari Senin.","09_FAQ_Jam_Operasional_dan_Lokasi.md",FAQ,TRUE
+"Apakah toko menyediakan parkir untuk pelanggan?","Ya, parkir motor 20 unit dan mobil 5 unit di depan toko, gratis 2 jam pertama.","09_FAQ_Jam_Operasional_dan_Lokasi.md",FAQ,TRUE
+"Apa kebijakan retur dan tukar barang?","Barang dapat dikembalikan/ditukar sesuai kebijakan retur yang berlaku di toko.","11_FAQ_Kebijakan_Retur_dan_Tukar_Barang.md",FAQ,TRUE
 "Bagaimana prosedur membuka toko menurut SOP?","Prosedur buka toko dimulai 07:30 oleh manajer: buka kunci & alarm, nyalakan lampu/AC/POS, cek uang kembalian minimal Rp 500.000, inspeksi kebersihan, cek harga etalase, briefing tim, buka pintu 08:00.","01_SOP_Buka_Toko.md",SOP,TRUE
 "Apa saja isi SOP Penanganan Kas dan Setoran Harian?","SOP mengatur: penerimaan uang kembalian awal hari, pencatatan transaksi, cek kas fisik vs POS tiap 2 jam (selisih > Rp 50.000 dilaporkan), hitung total kas akhir hari, bandingkan dengan POS, isi formulir setoran, serahkan ke manajer. Selisih > Rp 100.000 wajib investigasi.","03_SOP_Penanganan_Kas_dan_Setoran_Harian.md",SOP,TRUE
+"Apa prosedur tutup toko pada pukul 21:00?","Tutup pintu masuk 21:00, layani pelanggan sisa, tutup kasir 21:15 (hitung kas, catat, setor ke manajer), matikan POS/AC/lampu 21:25, cek kebersihan & kunci gudang/kantor 21:30, aktifkan alarm & kunci utama 21:35.","02_SOP_Tutup_Toko.md",SOP,TRUE
+"Bagaimana cara mengajukan komplain barang rusak?","Ajukan komplain melalui prosedur yang ditetapkan, lampirkan bukti transaksi dan kondisi barang.","16_Panduan_Komplain_Barang_Rusak.md",Panduan,TRUE
+"Apa yang harus dilakukan jika pengantaran terlambat?","Ikuti panduan komplain keterlambatan pengantaran sesuai prosedur yang berlaku.","18_Panduan_Komplain_Keterlambatan_Pengantaran.md",Panduan,TRUE
 "Berapa hari cuti tahunan karyawan setelah 1 tahun kerja?","12 hari per tahun.","20_Kebijakan_Cuti_dan_Izin_Karyawan.md",Kebijakan Internal,TRUE
 "Bagaimana ketentuan izin sakit kurang dari 3 hari?","Wajib surat keterangan dokter atau puskesmas.","20_Kebijakan_Cuti_dan_Izin_Karyawan.md",Kebijakan Internal,TRUE
-"Berapa bonus bulanan jika pencapaian penjualan 115%?","Bonus Rp 1.000.000 (pencapaian 111-120%).","24_Kebijakan_Bonus_dan_Insentif_Penjualan.md",Kebijakan Internal,TRUE
-"Apakah toko menyediakan parkir untuk pelanggan?","Ya, parkir motor 20 unit dan mobil 5 unit di depan toko, gratis 2 jam pertama.","09_FAQ_Jam_Operasional_dan_Lokasi.md",FAQ,TRUE
-"Apa prosedur tutup toko pada pukul 21:00?","Tutup pintu masuk 21:00, layani pelanggan sisa, tutup kasir 21:15 (hitung kas, catat, setor ke manajer), matikan POS/AC/lampu 21:25, cek kebersihan & kunci gudang/kantor 21:30, aktifkan alarm & kunci utama 21:35.","02_SOP_Tutup_Toko.md",SOP,TRUE
 "Bagaimana kebijakan K3 terkait APAR dan jalur evakuasi?","APAR di kasir (1), gudang (2), kantor (1). Jalur evakuasi: pintu depan & pintu belakang gudang. Simulasi 2x/tahun.","25_Kebijakan_Keselamatan_Kerja_K3_Sederhana.md",Kebijakan Internal,TRUE
 "Di mana lokasi Toko Makmur Jaya?","Jalan Merdeka No. 123, Jakarta Pusat, dekat Stasiun Merdeka.","00_Company_Profile_Toko_Makmur_Jaya.md",Profil Perusahaan,TRUE
-"Apa syarat mendapatkan bonus tahunan (THR + Performance)?","Karyawan status tetap, minimal 6 bulan kerja, tidak ada sanksi berat tahun berjalan. THR 1x gaji pokok, performance bonus 0.5-2x gaji pokok.","24_Kebijakan_Bonus_dan_Insentif_Penjualan.md",Kebijakan Internal,TRUE
-"Berapa lama cuti melahirkan yang diberikan?","3 bulan (1,5 bulan sebelum dan 1,5 bulan setelah melahirkan) sesuai UU.","20_Kebijakan_Cuti_dan_Izin_Karyawan.md",Kebijakan Internal,TRUE
-"Apa yang harus dilakukan jika lantai basah di area kerja?","Pasang tanda 'Hati-hati Lantai Licin' secara wajib.","25_Kebijakan_Keselamatan_Kerja_K3_Sederhana.md",Kebijakan Internal,TRUE
 "Berapa nominal gaji pokok karyawan baru?","Informasi tidak ditemukan di dokumen resmi.","",Unsupported,FALSE
 "Siapa nama pemilik toko?","Informasi tidak ditemukan di dokumen resmi.","",Unsupported,FALSE
 "Bagaimana cara mengajukan pinjaman ke manajer?","Informasi tidak ditemukan di dokumen resmi.","",Unsupported,FALSE
