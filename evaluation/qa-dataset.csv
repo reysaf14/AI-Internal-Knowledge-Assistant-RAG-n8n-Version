@@ -22,6 +22,6 @@ Pertanyaan,Jawaban_Benar,Dokumen_Sumber,Kategori,Supported
 "Apa syarat mendapatkan bonus tahunan (THR + Performance)?","Karyawan status tetap, minimal 6 bulan kerja, tidak ada sanksi berat tahun berjalan. THR 1x gaji pokok, performance bonus 0.5-2x gaji pokok.","24_Kebijakan_Bonus_dan_Insentif_Penjualan.md",Kebijakan Internal,TRUE
 "Berapa lama cuti melahirkan yang diberikan?","3 bulan (1,5 bulan sebelum dan 1,5 bulan setelah melahirkan) sesuai UU.","20_Kebijakan_Cuti_dan_Izin_Karyawan.md",Kebijakan Internal,TRUE
 "Apa yang harus dilakukan jika lantai basah di area kerja?","Pasang tanda 'Hati-hati Lantai Licin' secara wajib.","25_Kebijakan_Keselamatan_Kerja_K3_Sederhana.md",Kebijakan Internal,TRUE
-"Berapa nominal gaji pokok karyawan baru?","Informasi tidak ditemukan di dokumen resmi.","",Unsupported,TRUE
-"Siapa nama pemilik toko?","Informasi tidak ditemukan di dokumen resmi.","",Unsupported,TRUE
-"Bagaimana cara mengajukan pinjaman ke manajer?","Informasi tidak ditemukan di dokumen resmi.","",Unsupported,TRUE
+"Berapa nominal gaji pokok karyawan baru?","Informasi tidak ditemukan di dokumen resmi.","",Unsupported,FALSE
+"Siapa nama pemilik toko?","Informasi tidak ditemukan di dokumen resmi.","",Unsupported,FALSE
+"Bagaimana cara mengajukan pinjaman ke manajer?","Informasi tidak ditemukan di dokumen resmi.","",Unsupported,FALSE
