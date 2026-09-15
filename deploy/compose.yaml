@@ -1,0 +1,104 @@
+# =============================================================================
+# Asisten Pengetahuan Internal Toko Makmur Jaya — local-isolated profile
+# Architecture version: 1.2 | Compose created: 2026-09-14
+# Profile: local-isolated (no Caddy, loopback only, mock provider)
+# Usage: cd project root && bash deploy/start-local.sh
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL + pgvector
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: rag-postgres-local
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-automation}
+      POSTGRES_USER: ${POSTGRES_USER:-cluster_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      # DB role passwords — consumed by deploy/postgres-init/01-init.sh
+      # (docker-entrypoint-initdb.d runs inside container with these env vars)
+      N8N_DB_PASSWORD: ${N8N_DB_PASSWORD:?N8N_DB_PASSWORD required}
+      RAG_INGEST_DB_PASSWORD: ${RAG_INGEST_DB_PASSWORD:?RAG_INGEST_DB_PASSWORD required}
+      RAG_RUNTIME_DB_PASSWORD: ${RAG_RUNTIME_DB_PASSWORD:?RAG_RUNTIME_DB_PASSWORD required}
+    volumes:
+      - rag-pgdata-local:/var/lib/postgresql/data
+      - ../deploy/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cluster_admin} -d ${POSTGRES_DB:-automation}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - rag-net-local
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # n8n orchestration
+  # ---------------------------------------------------------------------------
+  n8n:
+    image: n8nio/n8n:1.62.1
+    container_name: rag-n8n-local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB:-automation}
+      DB_POSTGRESDB_USER: ${N8N_DB_USER:-n8n_app}
+      DB_POSTGRESDB_PASSWORD: ${N8N_DB_PASSWORD:?N8N_DB_PASSWORD required}
+      DB_POSTGRESDB_SCHEMA: n8n
+      N8N_HOST: 127.0.0.1
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-Asia/Jakarta}
+      TZ: ${GENERIC_TIMEZONE:-Asia/Jakarta}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?N8N_ENCRYPTION_KEY required}
+      EXECUTIONS_MODE: regular
+      N8N_CONCURRENCY_PRODUCTION_LIMIT: 1
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: none
+      EXECUTIONS_DATA_SAVE_ON_ERROR: none
+      EXECUTIONS_DATA_SAVE_ON_PROGRESS: "false"
+      EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS: "false"
+      EXECUTIONS_DATA_PRUNE: "true"
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      N8N_RESTRICT_FILE_ACCESS_TO: /files/docs
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+      EXECUTIONS_DATA_MAX_AGE: ${EXECUTIONS_DATA_MAX_AGE:-24}
+    volumes:
+      - ../docs:/files/docs:ro
+      - n8n-data-local:/home/node/.n8n
+      - ../workflows:/import-workflows:ro
+    ports:
+      - "127.0.0.1:5678:5678"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5678/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - rag-net-local
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    read_only: false
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  rag-net-local:
+    driver: bridge
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  rag-pgdata-local:
+  n8n-data-local:
