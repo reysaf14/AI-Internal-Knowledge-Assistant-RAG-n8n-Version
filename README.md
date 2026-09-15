@@ -27,51 +27,64 @@ See [architecture.md](.ai/knowledge/architecture.md) for full spec (v1.2, 8 mile
 
 ### Prerequisites
 
-- Docker + Docker Compose v2+
-- 4 secrets (generate with `openssl rand -base64 32`):
-  - `N8N_ENCRYPTION_KEY`
-  - `POSTGRES_PASSWORD`
-  - `N8N_DB_PASSWORD`
-  - `RAG_INGEST_DB_PASSWORD` + `RAG_RUNTIME_DB_PASSWORD`
+- Docker Desktop / Docker Engine + Compose v2
+- `deploy/compose.yaml` (buatan DevOps, M6) + `.env.test` (dummy local)
 
-### 1. Clone and configure
+### 1. Configure
 
 ```bash
-cp .env.example .env
-# Fill in all REQUIRED values (secrets, container image tags, DB passwords)
-# See .env.example for full schema and instructions
+cp .env.example .env.test
+# Fill in test-only values (see .env.test for the dummy defaults)
+# NEVER use production secrets in .env.test
 ```
 
 ### 2. Start stack
 
 ```bash
-docker compose up -d
+bash deploy/start-local.sh
 ```
+
+Launcher akan:
+1. Validasi compose config (quiet)
+2. `docker compose up -d` dengan project `rag-local` + `.env.test`
+3. Menunggu healthcheck
 
 Services:
 | Service | Port | Purpose |
 |---------|------|---------|
-| n8n | 5678 | Workflow UI + webhook |
-| PostgreSQL + pgvector | 5432 | Vector store + dedup |
+| n8n | 127.0.0.1:5678 (loopback only) | Workflow UI + webhook |
+| PostgreSQL + pgvector | internal (no host port) | Vector store + dedup + state |
 
-### 3. Import workflows
+### 3. Stop stack
 
-1. Open n8n UI at `http://localhost:5678`
+```bash
+bash deploy/stop-local.sh
+# Volumes preserved. To also remove volumes:
+#   docker compose -f deploy/compose.yaml --project-name rag-local --env-file .env.test down -v
+```
+
+### 4. Import workflows
+
+See `deploy/WORKFLOW-IMPORT-GUIDE.md` — three options (CLI, API, UI).
+
+1. Open n8n UI at `http://127.0.0.1:5678`
 2. Import `workflows/01-corpus-ingestion.json`
 3. Import `workflows/02-telegram-grounded-qa.json`
 4. Configure credential `ai-provider` (OpenAI-compatible base URL + API key)
-5. Configure Telegram bot credential (BotFather token)
-6. Set webhook URL for workflow 02
+5. Configure Telegram bot credential `telegram-demo-bot` (BotFather token) for workflow 02
+6. Populate `rag.rag_settings`, including the allowed Telegram chat ID; run the alignment migration for an existing database volume
+7. Activate only after workflow credentials, runtime settings, and an active corpus are ready. See `deploy/WORKFLOW-IMPORT-GUIDE.md`.
 
-### 4. Ingest corpus
+### 5. Ingest corpus
 
 1. Run workflow 01 (Manual Trigger)
-2. Documents from `docs/` are embedded and stored in pgvector
-3. Verify: query `SELECT count(*) FROM rag_staging WHERE status = 'active'`
+2. Documents from `docs/` (mounted read-only) are embedded and stored in pgvector
+3. Verify: query `SELECT count(*) FROM rag.documents WHERE corpus_version = (SELECT active_corpus_version FROM rag.rag_settings)`
 
-### 5. Ask questions
+### 6. Ask questions
 
-Send any message to your Telegram bot → receive a grounded answer citing the source document.
+**local-isolated**: validate import, graph, AI, and database contracts; live Telegram requires a reachable approved webhook endpoint.
+**demo-vps**: after credential binding, settings, and corpus activation, send a message to the Telegram bot and verify the grounded response and delivery state.
 
 ---
 
