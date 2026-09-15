@@ -4,18 +4,14 @@
 
 These scripts must be run in the following order during initial deployment:
 
-### 1. `00-pgvector-extension.sql` — **Run as superuser (bootstrap role)**
-- Installs `pgvector` extension
-- Must run before any table with `VECTOR` column type
-- Run with: `psql -U cluster_admin -d automation -f 00-pgvector-extension.sql`
+### 1. `01-init.sh` — **Run as superuser by the PostgreSQL image**
+- Installs pgvector and creates schemas, roles, grants, and RAG tables.
+- Reads role passwords only from container environment variables.
+- Creates the workflow alignment columns `embedding_profile_id`, `ai_timeout_max`, and `telegram_allowed_chat_id`.
 
-### 2. `01-schema-roles-grants.sql` — **Run as superuser (bootstrap role)**
-- Creates schemas: `n8n`, `rag`
-- Creates roles: `rag_ingest`, `rag_runtime` (passwords are placeholders — actual passwords set via environment variables at container startup)
-- Grants permissions
-- Creates all RAG tables: `rag_settings`, `corpus_versions`, `documents`, `telegram_updates`, `safe_events`
-- Inserts initial `rag_settings` row (config_revision = 'UNINITIALIZED')
-- Run with: `psql -U cluster_admin -d automation -f 01-schema-roles-grants.sql`
+### 2. `02-rag-schema-alignment.sql` — **Existing-volume migration**
+- Adds the alignment columns idempotently when an older local volume already exists.
+- The Compose init directory runs this only for a fresh database; apply it explicitly to an existing disposable local volume before importing the workflows.
 
 ## Post-Initialization (After RAG_EMBEDDING_DIMENSION is known)
 
@@ -32,11 +28,13 @@ After Engineer calibrates the embedding model and determines `RAG_EMBEDDING_DIME
        chunk_index INTEGER NOT NULL,
        content TEXT NOT NULL,
        embedding VECTOR(768),  -- <-- SET ACTUAL DIMENSION HERE
+       embedding_profile_id TEXT NOT NULL,
        metadata JSONB NOT NULL DEFAULT '{}',
        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
        CONSTRAINT uq_doc_chunk UNIQUE (corpus_version, source_hash, chunk_index)
    );
    CREATE INDEX idx_documents_corpus_version ON rag.documents (corpus_version);
+   CREATE INDEX idx_documents_profile ON rag.documents (corpus_version, embedding_profile_id);
    GRANT SELECT ON rag.documents TO rag_runtime;
    GRANT ALL ON rag.documents TO rag_ingest;
    ```
