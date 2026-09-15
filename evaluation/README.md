@@ -1,124 +1,85 @@
 # Evaluation Dataset & Rubric — Asisten Pengetahuan Internal Toko Makmur Jaya
-# Architecture version: 1.2 | Environment Schema version: 1.1
-# =============================================================================
-# This document describes the approved eval dataset, rubric, config revision,
-# model/corpus identity, and rerun rules.
-# =============================================================================
 
-## 1. Dataset Composition (Approved 12 Supported + 3 Unsupported)
+Architecture version: 1.2
+Dataset: `evaluation/qa-dataset.csv`
+Composition: 12 supported + 3 unsupported
+Status: DRAFT — requires Human semantic approval before QA
 
-| # | Pertanyaan | Kategori | Supported | Dokumen Sumber |
-|---|------------|----------|-----------|----------------|
-| 1 | Jam berapa toko buka hari Senin? | FAQ | TRUE | 09_FAQ_Jam_Operasional_dan_Lokasi.md |
-| 2 | Bagaimana prosedur membuka toko menurut SOP? | SOP | TRUE | 01_SOP_Buka_Toko.md |
-| 3 | Apa saja isi SOP Penanganan Kas dan Setoran Harian? | SOP | TRUE | 03_SOP_Penanganan_Kas_dan_Setoran_Harian.md |
-| 4 | Berapa hari cuti tahunan karyawan setelah 1 tahun kerja? | Kebijakan Internal | TRUE | 20_Kebijakan_Cuti_dan_Izin_Karyawan.md |
-| 5 | Bagaimana ketentuan izin sakit kurang dari 3 hari? | Kebijakan Internal | TRUE | 20_Kebijakan_Cuti_dan_Izin_Karyawan.md |
-| 6 | Berapa bonus bulanan jika pencapaian penjualan 115%? | Kebijakan Internal | TRUE | 24_Kebijakan_Bonus_dan_Insentif_Penjualan.md |
-| 7 | Apakah toko menyediakan parkir untuk pelanggan? | FAQ | TRUE | 09_FAQ_Jam_Operasional_dan_Lokasi.md |
-| 8 | Apa prosedur tutup toko pada pukul 21:00? | SOP | TRUE | 02_SOP_Tutup_Toko.md |
-| 9 | Bagaimana kebijakan K3 terkait APAR dan jalur evakuasi? | Kebijakan Internal | TRUE | 25_Kebijakan_Keselamatan_Kerja_K3_Sederhana.md |
-| 10 | Di mana lokasi Toko Makmur Jaya? | Profil Perusahaan | TRUE | 00_Company_Profile_Toko_Makmur_Jaya.md |
-| 11 | Apa syarat mendapatkan bonus tahunan (THR + Performance)? | Kebijakan Internal | TRUE | 24_Kebijakan_Bonus_dan_Insentif_Penjualan.md |
-| 12 | Berapa lama cuti melahirkan yang diberikan? | Kebijakan Internal | TRUE | 20_Kebijakan_Cuti_dan_Izin_Karyawan.md |
-| 13 | Apa yang harus dilakukan jika lantai basah di area kerja? | Kebijakan Internal | TRUE | 25_Kebijakan_Keselamatan_Kerja_K3_Sederhana.md |
-| 14 | Berapa nominal gaji pokok karyawan baru? | — | FALSE | (none) |
-| 15 | Siapa nama pemilik toko? | — | FALSE | (none) |
-| 16 | Bagaimana cara mengajukan pinjaman ke manajer? | — | FALSE | (none) |
+## Dataset contract
 
-**Category Distribution (Supported):**
-- SOP Operasional: 3 (items 2, 3, 8)
-- FAQ Pelanggan: 2 (items 1, 7) — *Note: PRD specifies 3 FAQ; this working copy has 2. Awaiting Human approval to adjust.*
-- Panduan Komplain: 0 — *Note: PRD specifies 2. Awaiting Human approval.*
-- Kebijakan Internal: 6 (items 4, 5, 6, 9, 11, 12, 13) — *Note: PRD specifies 3. This working copy has 7. Awaiting Human approval.*
-- Profil Perusahaan: 1 (item 10)
+The CSV is authoritative. It contains 15 data rows after the commented metadata and header:
 
-**Unsupported (3):** Items 14, 15, 16 — verified semantically against entire corpus; no document contains answers.
+- 12 supported questions: 3 FAQ, 3 SOP, 2 Panduan, 3 Kebijakan Internal, 1 Profil Perusahaan.
+- 3 unsupported questions: no approved source and expected abstention.
+- Every supported source label must match one of the 26 files in `docs/`.
 
-> **STATUS: DRAFT — REQUIRES HUMAN APPROVAL** after corpus-wide semantic verification.
-> Source candidate CSV has 4 rows referencing docs 26/27/29 (outside corpus 00-25).
-> This working copy adjusts to 12+3 with synthetic corpus subset.
-> Human must approve final composition before QA.
+Human must verify each supported answer and source against the complete corpus before the dataset is frozen for QA. Synthetic data and sanitized evidence only; no production records, credentials, or raw Telegram payloads.
 
-## 2. Rubric (Binary Per-Question)
+## Rubric
 
-### Supported Questions (12 items)
-**PASS** if ALL of:
-- All mandatory facts from `Jawaban_Benar` are conveyed
-- No contradiction with source document
-- No unsupported policy claims added
-- At least one correct `source_name` cited (exact filename match)
-- Any additional sources cited are relevant
+### Supported questions
 
-**FAIL** if ANY:
-- Missing mandatory fact
-- Contradicts source document
-- Adds unsupported policy claim
-- No source cited OR incorrect source cited
+PASS requires all of:
 
-### Unsupported Questions (3 items)
-**PASS** only if:
-- Clearly states "informasi tidak ditemukan" / "tidak diketahui" / equivalent
-- Does NOT guess or speculate
-- Does NOT cite any source (or explicitly states "tidak ada sumber")
+- mandatory facts from `Jawaban_Benar` are conveyed;
+- no contradiction or unsupported policy claim;
+- at least one exact, relevant `source_name` is cited.
 
-**FAIL** if ANY:
-- Provides a policy claim/answer
-- Cites a fake source
-- Ambiguous/hedging without clear abstention
+FAIL if a mandatory fact is missing, the answer contradicts the source, or the citation is absent/incorrect.
 
-### Source Accuracy (Separate Gate)
-- **12/12** supported questions MUST cite at least one correct `source_name`
-- Every additional source cited must be relevant
-- Unsupported questions MUST NOT cite sources
+### Unsupported questions
 
-### Latency Gate (Hard)
-- **15/15** questions MUST complete < 5,000 ms each
-- Measured from workflow receive → Telegram send success
-- Individual measurement (not average)
-- Failed/send_unknown items do NOT count as pass
+PASS only if the response clearly states that the information was not found in the official documents and does not guess, speculate, or cite a source.
 
-## 3. Frozen Configuration (Must Be Identical for All Runs)
+### Aggregate gates
 
-| Parameter | Value | Source |
-|-----------|-------|--------|
-| `config_revision` | `2026-09-14-v1` | Engineer sets after calibration |
-| `chat_model` | `provider:model-id@version` | Human + Engineer / provider inventory |
-| `embedding_model` | `provider:model-id@version` | Human + Engineer / provider inventory |
-| `embedding_profile_id` | `hash(embedding_model + norm + dim)` | Engineer |
-| `embedding_dimension` | `INTEGER` | Engineer / `RAG_EMBEDDING_DIMENSION` |
-| `retrieval_limit` | `5` | Engineer calibrated |
-| `minimum_similarity` | `0.75` | Engineer calibrated |
-| `context_bound` | `3000` | Engineer calibrated |
-| `output_bound` | `500` | Engineer calibrated |
-| `N8N_AI_TIMEOUT_MAX` | `INTEGER ms` | Engineer + DevOps profiled |
-| Corpus version | `manifest_hash` | From ingestion run |
-| Question order | As listed in qa-dataset.csv | Fixed |
-| Temperature | Minimum supported by runtime | Fixed |
+- Content: 15/15 questions pass the applicable rubric.
+- Source accuracy: 12/12 supported questions cite a correct source; unsupported questions cite none.
+- Latency: 15/15 complete under 5,000 ms from workflow receive to Telegram send success.
+- Delivery failures or `delivery_unknown` do not count as passing latency/content evidence.
 
-## 4. Rerun Rules
+## Frozen run configuration
 
-1. **First declared run** = primary evidence (must be explicitly declared before execution)
-2. **Reruns** must be labeled (e.g., `rerun-1`, `rerun-2`) with reason documented
-3. Reruns do NOT replace primary evidence without documented reason + impact record
-4. All runs use same frozen config (no parameter changes between runs)
-5. Sequential execution (single user simulation); no parallel requests
-6. Warm-up: provider/model readiness check documented before required run
-7. Cold/idle starts recorded separately as exploratory (not required)
+The primary QA run must record the exact values used for:
 
-## 5. Evidence Artifacts (Per Run)
+| Parameter | Source |
+|---|---|
+| `config_revision` | `rag.rag_settings` |
+| `chat_model` | `rag.rag_settings` / provider inventory |
+| `embedding_model` | `rag.rag_settings` / provider inventory |
+| `embedding_profile_id` | `rag.rag_settings` |
+| `embedding_dimension` | `rag.rag_settings` |
+| `retrieval_limit`, `minimum_similarity` | `rag.rag_settings` after calibration |
+| `context_bound`, `output_bound` | `rag.rag_settings` |
+| `ai_timeout_max` | `rag.rag_settings` after provider profiling |
+| `corpus_version` | active corpus selected by ingestion |
+| temperature | workflow contract; currently `0` for provider requests |
 
-Each run must produce sanitized evidence:
-- `run_<label>_timestamp.jsonl` — per-question: question, answer, sources, latency_ms, pass/fail per rubric
-- `run_<label>_summary.md` — aggregate: content accuracy (X/15), source accuracy (Y/12), abstention (Z/3), latency (15/15 < 5000ms)
-- `run_<label>_config.json` — frozen config used
-- No raw payloads, credentials, PII, or execution bodies
+No parameter may change between questions in a primary run.
 
-## 6. Approval Chain
+## Rerun rules
 
-1. Engineer prepares working copy (this document + qa-dataset.csv)
-2. Human performs corpus-wide semantic verification → approves 12+3 composition
-3. Engineer freezes config_revision after calibration (M2/M3)
-4. QA executes on approved dataset + frozen config
-5. Security audits same candidate + deployment config
-6. Human quality gate → release/deploy decision
+1. Declare the first run as the primary run before execution.
+2. Label any rerun (`rerun-1`, `rerun-2`) and record the reason and impact.
+3. Do not replace primary evidence without a documented reason.
+4. Run questions sequentially with the same frozen configuration.
+5. Record provider readiness/warm-up separately from required evidence.
+
+## Evidence artifacts
+
+Each run produces sanitized artifacts only:
+
+- `run_<label>_timestamp.jsonl`: question, answer, sources, latency, and per-question result;
+- `run_<label>_summary.md`: content, source, abstention, latency, and delivery aggregates;
+- `run_<label>_config.json`: frozen runtime configuration.
+
+Do not store credentials, raw provider bodies, raw Telegram payloads, or PII.
+
+## Approval chain
+
+1. Engineer prepares this working copy and the CSV.
+2. Human approves the 12+3 composition and source semantics.
+3. Engineer freezes runtime values after M7 calibration.
+4. QA executes against the approved dataset.
+5. Security audits the same candidate and deployment configuration.
+6. Human makes the quality/release decision.
