@@ -54,7 +54,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const files = $input.all();\nconst manifest = [];\nfor (const f of files) {\n  const name = f.json.fileName || f.json.filename || '';\n  const content = f.binary?.data?.data ? Buffer.from(f.binary.data.data, 'base64').toString('utf8') : '';\n  if (!/^\\d{2}_.+\\.md$/.test(name)) throw new Error('bad_corpus_filename');\n  if (!content.trim()) throw new Error('empty_corpus_file');\n  if (name.includes('..') || name.includes('/') || name.includes('\\\\')) throw new Error('path_traversal');\n  manifest.push({ name, content, hash: require('crypto').createHash('sha256').update(content).digest('hex') });\n}\nif (!manifest.length) throw new Error('empty_corpus');\nmanifest.sort((a, b) => a.name.localeCompare(b.name));\nreturn manifest.map((m) => ({ json: m }));"
+        "jsCode": "const files = $input.all();\nconst manifest = [];\nfor (const f of files) {\n  const name = f.binary?.data?.fileName || f.json.fileName || f.json.filename || '';\n  const content = f.binary?.data?.data ? Buffer.from(f.binary.data.data, 'base64').toString('utf8') : '';\n  if (!/^\\d{2}_.+\\.md$/.test(name)) throw new Error('bad_corpus_filename');\n  if (!content.trim()) throw new Error('empty_corpus_file');\n  if (name.includes('..') || name.includes('/') || name.includes('\\\\')) throw new Error('path_traversal');\n  manifest.push({ name, content, hash: require('crypto').createHash('sha256').update(content).digest('hex') });\n}\nif (!manifest.length) throw new Error('empty_corpus');\nmanifest.sort((a, b) => a.name.localeCompare(b.name));\nreturn manifest.map((m) => ({ json: m }));"
       },
       "id": "m1-build-manifest",
       "name": "Build Manifest & Validate",
@@ -178,7 +178,7 @@
     },
     {
       "parameters": {
-        "jsCode": "let batch = {};\ntry { batch = $('Prepare Ingest Batch').first().json || {}; } catch (_) {}\nreturn [{ json: { status: 'failed', corpus_version: batch.corpus_version || null, error_category: 'workflow_failure', has_candidate: Boolean(batch.corpus_version) } }];"
+        "jsCode": "let batch = {};\ntry { batch = $('Prepare Ingest Batch').first().json || {}; } catch (_) {}\nconst inputErrors = $input.all().map((item) => item.json?.error ?? item.error ?? item.json?.message).map((error) => typeof error === 'string' ? error : error?.message).filter(Boolean);\nconst failureReason = String(inputErrors[0] || 'workflow_failure').slice(0, 500);\nreturn [{ json: { status: 'failed', corpus_version: batch.corpus_version || null, error_category: failureReason, has_candidate: Boolean(batch.corpus_version) } }];"
       },
       "id": "m1-failure-marking",
       "name": "Failure Marking",
