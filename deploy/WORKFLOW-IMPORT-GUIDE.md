@@ -91,6 +91,21 @@ After import, each workflow needs credential rebinding in n8n UI:
 | PostgreSQL nodes | `postgres-rag-runtime` | Connection to `rag` schema (role: `rag_runtime`) |
 | Telegram Send | `telegram-demo-bot` | Same bot token |
 
+### Local Ollama tester profile (M6 only)
+
+Use this profile only for local runtime readiness and provider-contract testing. It is not a quality or release verdict.
+
+| Binding | Value |
+|---|---|
+| `ai-provider` base URL | `http://host.docker.internal:11434/v1` |
+| `ai-provider` API key | Any local-only non-secret placeholder if the n8n credential form requires one; Ollama does not use it for local auth |
+| `rag_settings.chat_model` | `qwen3-8b-2k:latest` |
+| `rag_settings.embedding_model` | `embeddinggemma:300m-qat-q4_0` |
+| `rag_settings.embedding_dimension` | `768` |
+| Optional alternative chat/vision model | `gemma4:e2b-it-qat` |
+
+The n8n container must be able to reach Ollama through `host.docker.internal`; `127.0.0.1` inside the container is not the Windows host. Configure Ollama to listen on a host-reachable interface before testing. The Qwen workflow request sets `reasoning_effort: 'none'` to avoid spending the short tester budget on hidden reasoning; this is a runtime test setting, not a quality claim.
+
 ### Environment-Specific Settings (in n8n UI)
 
 | Setting | Value | Location |
