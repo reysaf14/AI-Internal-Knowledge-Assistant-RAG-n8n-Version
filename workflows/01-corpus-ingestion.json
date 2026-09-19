@@ -30,7 +30,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const s = $input.first()?.json || {};\nconst required = ['config_revision', 'embedding_model', 'embedding_profile_id', 'embedding_dimension', 'ai_timeout_max'];\nconst missing = required.filter((key) => s[key] === null || s[key] === undefined || s[key] === '' || s[key] === 'UNINITIALIZED');\nif (missing.length || !s.chat_model) throw new Error('rag_settings_incomplete');\nif (!Number.isInteger(Number(s.embedding_dimension)) || Number(s.embedding_dimension) <= 0) throw new Error('embedding_dimension_invalid');\nif (!Number.isInteger(Number(s.ai_timeout_max)) || Number(s.ai_timeout_max) <= 0) throw new Error('ai_timeout_invalid');\nreturn [{ json: s }];"
+        "jsCode": "const s = $input.first()?.json || {};\nconst required = ['config_revision', 'chat_model', 'embedding_model', 'embedding_profile_id', 'embedding_dimension', 'ai_timeout_max'];\nconst missing = required.filter((key) => s[key] === null || s[key] === undefined || s[key] === '' || s[key] === 'UNINITIALIZED');\nif (missing.length) throw new Error(`rag_settings_incomplete:${missing.join(',')}`);\nif (!Number.isInteger(Number(s.embedding_dimension)) || Number(s.embedding_dimension) <= 0) throw new Error(`embedding_dimension_invalid:${s.embedding_dimension}`);\nif (!Number.isInteger(Number(s.ai_timeout_max)) || Number(s.ai_timeout_max) <= 0) throw new Error(`ai_timeout_invalid:${s.ai_timeout_max}`);\nreturn [{ json: s }];"
       },
       "id": "m1-validate-settings",
       "name": "Validate RAG Settings",
@@ -77,12 +77,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $credentials?.url }}/embeddings",
+      "url": "http://host.docker.internal:11434/v1/embeddings",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "openAiApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: $('Load RAG Settings').first().json.embedding_model, input: $('Chunk Documents').all().map((c) => c.json.content) }) }}",
+      "jsonBody": "={{ { model: $('Load RAG Settings').first().json.embedding_model, input: $('Chunk Documents').all().map((c) => c.json.content) } }}",
         "options": {
           "timeout": "={{ Number($('Load RAG Settings').first().json.ai_timeout_max) }}"
         }
