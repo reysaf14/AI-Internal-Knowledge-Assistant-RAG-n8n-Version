@@ -110,7 +110,9 @@ The n8n container must be able to reach Ollama through `host.docker.internal`; `
 
 The exported workflows use explicit Docker-local endpoint paths (`/v1/embeddings` and `/v1/chat/completions`). The `ai-provider` credential supplies the OpenAI-compatible authentication fields; its Base URL is retained for credential testing, but is not interpolated into the HTTP Request node URL because credential fields are not available there as workflow expressions.
 
-The HTTP Request JSON bodies use expressions that return native objects. Keep this form in n8n `1.123.81`; wrapping the expression with `JSON.stringify(...)` can make the JSON parameter fail validation in this node version.
+The HTTP Request nodes use `Raw` body mode with `Content-Type: application/json`. Ingestion builds the 297-input payload once in `Prepare Embedding Request`, then sends the resulting `request_body` string from a single input item. This avoids both the `Using JSON` coercion issue and the unreliable large inline expression in n8n `1.123.81`. `Embedding Request` also retains `Execute Once` as a defensive guard against repeated batch requests.
+
+For PostgreSQL nodes on n8n `1.123.81`, query-parameter arrays are built only from the current item (`$json`). `Restore Ingest Batch` explicitly restores the batch after the version-upsert node, and `Staging: Insert Chunks` returns the corpus/profile identity even when an idempotent rerun inserts zero rows. Do not replace these with cross-node `$()` expressions inside the parameter array: that form is coerced to an unsupported value type by this node version.
 
 ### Environment-Specific Settings (in n8n UI)
 
