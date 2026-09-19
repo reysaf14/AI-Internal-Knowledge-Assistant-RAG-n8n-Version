@@ -76,13 +76,34 @@
     },
     {
       "parameters": {
+        "jsCode": "const settings = $('Load RAG Settings').first().json;\nconst chunks = $input.all();\nconst input = chunks.map((item) => item.json.content);\nif (!input.length) throw new Error('empty_embedding_batch');\nconst requestBody = JSON.stringify({ model: settings.embedding_model, input });\nreturn [{ json: { request_body: requestBody, chunk_count: input.length } }];"
+      },
+      "id": "m1-prepare-embedding-request",
+      "name": "Prepare Embedding Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [490, 0],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
         "method": "POST",
       "url": "http://host.docker.internal:11434/v1/embeddings",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "openAiApi",
-        "sendBody": true,
-        "specifyBody": "json",
-      "jsonBody": "={{ { model: $('Load RAG Settings').first().json.embedding_model, input: $('Chunk Documents').all().map((c) => c.json.content) } }}",
+      "authentication": "predefinedCredentialType",
+      "nodeCredentialType": "openAiApi",
+      "sendBody": true,
+      "contentType": "raw",
+      "body": "={{ $json.request_body }}",
+      "sendHeaders": true,
+      "specifyHeaders": "keypair",
+      "headerParameters": {
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ]
+      },
         "options": {
           "timeout": "={{ Number($('Load RAG Settings').first().json.ai_timeout_max) }}"
         }
@@ -92,6 +113,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [600, 0],
+      "executeOnce": true,
       "onError": "continueErrorOutput",
       "credentials": {
         "openAiApi": {
@@ -124,13 +146,13 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO rag.corpus_versions (corpus_version, status, document_count, chunk_count, embedding_profile_id) VALUES ($1, 'staging', $2, $3, $4) ON CONFLICT (corpus_version) DO NOTHING RETURNING corpus_version, status, document_count, chunk_count, embedding_profile_id",
-        "options": { "queryReplacement": "={{ $json.corpus_version }}, {{ $json.document_count }}, {{ $json.chunk_count }}, {{ $json.embedding_profile_id }}" }
+        "query": "INSERT INTO rag.corpus_versions (corpus_version, status, document_count, chunk_count, embedding_profile_id) VALUES ($1, 'staging', $2, $3, $4) ON CONFLICT (corpus_version) DO UPDATE SET document_count = EXCLUDED.document_count, chunk_count = EXCLUDED.chunk_count, embedding_profile_id = EXCLUDED.embedding_profile_id, status = CASE WHEN rag.corpus_versions.status = 'failed' THEN 'staging' ELSE rag.corpus_versions.status END, failed_at = CASE WHEN rag.corpus_versions.status = 'failed' THEN NULL ELSE rag.corpus_versions.failed_at END, failure_reason = CASE WHEN rag.corpus_versions.status = 'failed' THEN NULL ELSE rag.corpus_versions.failure_reason END WHERE rag.corpus_versions.embedding_profile_id = EXCLUDED.embedding_profile_id RETURNING corpus_version, status, document_count, chunk_count, embedding_profile_id",
+        "options": { "queryReplacement": "={{ [$json.corpus_version, $json.document_count, $json.chunk_count, $json.embedding_profile_id] }}" }
       },
       "id": "m1-create-version",
       "name": "Staging: Create Version",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [1260, 0],
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
@@ -138,14 +160,25 @@
     },
     {
       "parameters": {
+        "jsCode": "const batch = $('Prepare Ingest Batch').first().json;\nif (!batch?.corpus_version || !batch?.embedding_profile_id || !Array.isArray(batch?.chunks)) throw new Error('ingest_batch_unavailable');\nreturn [{ json: batch }];"
+      },
+      "id": "m1-restore-ingest-batch",
+      "name": "Restore Ingest Batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1370, 0],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO rag.documents (corpus_version, source_name, source_hash, chunk_index, content, embedding, embedding_profile_id, metadata) SELECT $1, c.source_name, c.source_hash, c.chunk_index, c.content, c.embedding::text::vector, c.embedding_profile_id, jsonb_build_object('source_name', c.source_name, 'source_hash', c.source_hash, 'chunk_index', c.chunk_index, 'corpus_version', $1, 'embedding_profile_id', c.embedding_profile_id) FROM jsonb_to_recordset($2::jsonb) AS c(source_name text, source_hash text, chunk_index integer, content text, embedding jsonb, embedding_profile_id text) ON CONFLICT (corpus_version, source_hash, chunk_index) DO NOTHING RETURNING id",
-        "options": { "queryReplacement": "={{ $json.corpus_version }}, {{ JSON.stringify($json.chunks) }}" }
+        "query": "WITH inserted AS (INSERT INTO rag.documents (corpus_version, source_name, source_hash, chunk_index, content, embedding, embedding_profile_id, metadata) SELECT $1, c.source_name, c.source_hash, c.chunk_index, c.content, c.embedding::text::vector, c.embedding_profile_id, jsonb_build_object('source_name', c.source_name, 'source_hash', c.source_hash, 'chunk_index', c.chunk_index, 'corpus_version', $1, 'embedding_profile_id', c.embedding_profile_id) FROM jsonb_to_recordset($2::jsonb) AS c(source_name text, source_hash text, chunk_index integer, content text, embedding jsonb, embedding_profile_id text) ON CONFLICT (corpus_version, source_hash, chunk_index) DO NOTHING RETURNING id) SELECT $1::text AS corpus_version, $3::text AS embedding_profile_id, (SELECT count(*)::integer FROM inserted) AS inserted_chunk_count",
+        "options": { "queryReplacement": "={{ [$json.corpus_version, JSON.stringify($json.chunks), $json.embedding_profile_id] }}" }
       },
       "id": "m1-insert-chunks",
       "name": "Staging: Insert Chunks",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [1480, 0],
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
@@ -153,7 +186,23 @@
     },
     {
       "parameters": {
-        "jsCode": "const batch = $('Prepare Ingest Batch').first().json;\nif (!batch.corpus_version || !batch.chunk_count || !batch.embedding_profile_id) throw new Error('candidate_validation_failed');\nreturn [{ json: { ...batch, valid: true } }];"
+        "operation": "executeQuery",
+        "query": "SELECT cv.corpus_version, cv.status, cv.document_count, cv.chunk_count, cv.embedding_profile_id, count(d.id)::integer AS persisted_chunk_count, count(DISTINCT d.source_name)::integer AS persisted_document_count FROM rag.corpus_versions cv LEFT JOIN rag.documents d ON d.corpus_version = cv.corpus_version WHERE cv.corpus_version = $1 AND cv.embedding_profile_id = $2 GROUP BY cv.corpus_version, cv.status, cv.document_count, cv.chunk_count, cv.embedding_profile_id",
+        "options": { "queryReplacement": "={{ [$json.corpus_version, $json.embedding_profile_id] }}" }
+      },
+      "id": "m1-load-candidate-evidence",
+      "name": "Load Candidate Evidence",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1590, 0],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput",
+      "credentials": { "postgres": { "name": "postgres-rag-ingest" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "const batch = $('Prepare Ingest Batch').first().json;\nconst evidence = $input.first()?.json || {};\nconst expectedChunks = Number(batch.chunk_count);\nconst expectedDocuments = Number(batch.document_count);\nconst persistedChunks = Number(evidence.persisted_chunk_count);\nconst persistedDocuments = Number(evidence.persisted_document_count);\nconst validStatus = evidence.status === 'staging' || evidence.status === 'active';\nif (!batch.corpus_version || !batch.embedding_profile_id || evidence.corpus_version !== batch.corpus_version || evidence.embedding_profile_id !== batch.embedding_profile_id || !validStatus || persistedChunks !== expectedChunks || persistedDocuments !== expectedDocuments) {\n  throw new Error(`candidate_validation_failed:status=${evidence.status || 'missing'},chunks=${persistedChunks}/${expectedChunks},documents=${persistedDocuments}/${expectedDocuments}`);\n}\nconst { chunks, ...candidate } = batch;\nreturn [{ json: { ...candidate, persisted_chunk_count: persistedChunks, persisted_document_count: persistedDocuments, valid: true } }];"
       },
       "id": "m1-validate-candidate",
       "name": "Validate Candidate",
@@ -165,13 +214,13 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "BEGIN; UPDATE rag.corpus_versions SET status = 'superseded' WHERE status = 'active' AND EXISTS (SELECT 1 FROM rag.corpus_versions WHERE corpus_version = $1 AND status = 'staging' AND embedding_profile_id = $2); UPDATE rag.corpus_versions SET status = 'active', activated_at = now(), failed_at = NULL WHERE corpus_version = $1 AND status = 'staging' AND embedding_profile_id = $2; UPDATE rag.rag_settings SET active_corpus_version = $1, updated_at = now() WHERE id = 1 AND embedding_profile_id = $2 AND EXISTS (SELECT 1 FROM rag.corpus_versions WHERE corpus_version = $1 AND status = 'active' AND embedding_profile_id = $2); COMMIT;",
-        "options": { "queryReplacement": "={{ $json.corpus_version }}, {{ $json.embedding_profile_id }}" }
+        "query": "BEGIN; UPDATE rag.corpus_versions SET status = 'superseded' WHERE status = 'active' AND corpus_version <> $1 AND EXISTS (SELECT 1 FROM rag.corpus_versions candidate WHERE candidate.corpus_version = $1 AND candidate.status IN ('staging', 'active') AND candidate.embedding_profile_id = $2 AND candidate.chunk_count = (SELECT count(*) FROM rag.documents d WHERE d.corpus_version = candidate.corpus_version) AND candidate.document_count = (SELECT count(DISTINCT d.source_name) FROM rag.documents d WHERE d.corpus_version = candidate.corpus_version)); UPDATE rag.corpus_versions candidate SET status = 'active', activated_at = COALESCE(candidate.activated_at, now()), failed_at = NULL, failure_reason = NULL WHERE candidate.corpus_version = $1 AND candidate.status IN ('staging', 'active') AND candidate.embedding_profile_id = $2 AND candidate.chunk_count = (SELECT count(*) FROM rag.documents d WHERE d.corpus_version = candidate.corpus_version) AND candidate.document_count = (SELECT count(DISTINCT d.source_name) FROM rag.documents d WHERE d.corpus_version = candidate.corpus_version); UPDATE rag.rag_settings SET active_corpus_version = $1, updated_at = now() WHERE id = 1 AND embedding_profile_id = $2 AND EXISTS (SELECT 1 FROM rag.corpus_versions candidate WHERE candidate.corpus_version = $1 AND candidate.status = 'active' AND candidate.embedding_profile_id = $2 AND candidate.chunk_count = (SELECT count(*) FROM rag.documents d WHERE d.corpus_version = candidate.corpus_version) AND candidate.document_count = (SELECT count(DISTINCT d.source_name) FROM rag.documents d WHERE d.corpus_version = candidate.corpus_version)); COMMIT;",
+        "options": { "queryReplacement": "={{ [$json.corpus_version, $json.embedding_profile_id] }}" }
       },
       "id": "m1-activate-corpus",
       "name": "Activate Corpus (Atomic)",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [1920, 0],
       "onError": "continueErrorOutput",
       "credentials": { "postgres": { "name": "postgres-rag-ingest" } }
@@ -205,12 +254,12 @@
       "parameters": {
         "operation": "executeQuery",
         "query": "UPDATE rag.corpus_versions SET status = 'failed', failed_at = now(), failure_reason = $2 WHERE corpus_version = $1 AND status = 'staging'",
-        "options": { "queryReplacement": "={{ $json.corpus_version }}, {{ $json.error_category }}" }
+        "options": { "queryReplacement": "={{ [$json.corpus_version, $json.error_category] }}" }
       },
       "id": "m1-mark-failed",
       "name": "Failure: Mark Candidate",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [1480, 220],
       "credentials": { "postgres": { "name": "postgres-rag-ingest" } }
     },
@@ -229,12 +278,15 @@
     "Validate RAG Settings": { "main": [[{ "node": "Read Corpus Markdown", "type": "main", "index": 0 }], [{ "node": "Failure Marking", "type": "main", "index": 0 }]] },
     "Read Corpus Markdown": { "main": [[{ "node": "Build Manifest & Validate", "type": "main", "index": 0 }], [{ "node": "Failure Marking", "type": "main", "index": 0 }]] },
     "Build Manifest & Validate": { "main": [[{ "node": "Chunk Documents", "type": "main", "index": 0 }], [{ "node": "Failure Marking", "type": "main", "index": 0 }]] },
-    "Chunk Documents": { "main": [[{ "node": "Embedding Request", "type": "main", "index": 0 }], [{ "node": "Failure Marking", "type": "main", "index": 0 }]] },
+    "Chunk Documents": { "main": [[{ "node": "Prepare Embedding Request", "type": "main", "index": 0 }], [{ "node": "Failure Marking", "type": "main", "index": 0 }]] },
+    "Prepare Embedding Request": { "main": [[{ "node": "Embedding Request", "type": "main", "index": 0 }], [{ "node": "Failure Marking", "type": "main", "index": 0 }]] },
     "Embedding Request": { "main": [[{ "node": "Pair & Validate Embeddings", "type": "main", "index": 0 }], [{ "node": "Failure Marking", "type": "main", "index": 0 }]] },
     "Pair & Validate Embeddings": { "main": [[{ "node": "Prepare Ingest Batch", "type": "main", "index": 0 }], [{ "node": "Failure Marking", "type": "main", "index": 0 }]] },
     "Prepare Ingest Batch": { "main": [[{ "node": "Staging: Create Version", "type": "main", "index": 0 }], [{ "node": "Failure Marking", "type": "main", "index": 0 }]] },
-    "Staging: Create Version": { "main": [[{ "node": "Staging: Insert Chunks", "type": "main", "index": 0 }], [{ "node": "Failure Marking", "type": "main", "index": 0 }]] },
-    "Staging: Insert Chunks": { "main": [[{ "node": "Validate Candidate", "type": "main", "index": 0 }], [{ "node": "Failure Marking", "type": "main", "index": 0 }]] },
+    "Staging: Create Version": { "main": [[{ "node": "Restore Ingest Batch", "type": "main", "index": 0 }], [{ "node": "Failure Marking", "type": "main", "index": 0 }]] },
+    "Restore Ingest Batch": { "main": [[{ "node": "Staging: Insert Chunks", "type": "main", "index": 0 }], [{ "node": "Failure Marking", "type": "main", "index": 0 }]] },
+    "Staging: Insert Chunks": { "main": [[{ "node": "Load Candidate Evidence", "type": "main", "index": 0 }], [{ "node": "Failure Marking", "type": "main", "index": 0 }]] },
+    "Load Candidate Evidence": { "main": [[{ "node": "Validate Candidate", "type": "main", "index": 0 }], [{ "node": "Failure Marking", "type": "main", "index": 0 }]] },
     "Validate Candidate": { "main": [[{ "node": "Activate Corpus (Atomic)", "type": "main", "index": 0 }], [{ "node": "Failure Marking", "type": "main", "index": 0 }]] },
     "Activate Corpus (Atomic)": { "main": [[], [{ "node": "Failure Marking", "type": "main", "index": 0 }]] },
     "Failure Marking": { "main": [[{ "node": "Candidate Exists?", "type": "main", "index": 0 }]] },
@@ -246,7 +298,7 @@
   "staticData": null,
   "pinData": {},
   "active": false,
-  "meta": { "templateCredsSetupCompleted": false, "versionId": "m6-aligned-v1" },
+  "meta": { "templateCredsSetupCompleted": false, "versionId": "m6-live-ingestion-v2" },
   "tags": [],
-  "versionId": "m6-aligned-v1"
+  "versionId": "m6-live-ingestion-v2"
 }
