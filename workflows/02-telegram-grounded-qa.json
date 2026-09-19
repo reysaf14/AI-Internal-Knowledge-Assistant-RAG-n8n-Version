@@ -148,8 +148,18 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "openAiApi",
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ { model: $('Validate Input').first().json.embedding_model, input: [$('Validate Input').first().json.text] } }}",
+        "contentType": "raw",
+        "body": "={{ JSON.stringify({ model: $('Validate Input').first().json.embedding_model, input: [$('Validate Input').first().json.text] }) }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "options": { "timeout": "={{ Number($('Validate Input').first().json.ai_timeout_max) }}" }
       },
       "id": "m2-query-embedding",
@@ -217,8 +227,18 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "openAiApi",
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ { model: $('Build Prompt').first().json.model, messages: $('Build Prompt').first().json.messages, temperature: 0, max_tokens: Number($('Build Prompt').first().json.output_bound), reasoning_effort: 'none' } }}",
+        "contentType": "raw",
+        "body": "={{ JSON.stringify({ model: $('Build Prompt').first().json.model, messages: $('Build Prompt').first().json.messages, temperature: 0, max_tokens: Number($('Build Prompt').first().json.output_bound), reasoning_effort: 'none' }) }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "options": { "timeout": "={{ Number($('Validate Input').first().json.ai_timeout_max) }}" }
       },
       "id": "m2-chat-completion",
