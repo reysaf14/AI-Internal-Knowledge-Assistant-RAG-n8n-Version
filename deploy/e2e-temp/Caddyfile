@@ -1,0 +1,16 @@
+{
+  auto_https off
+  admin off
+}
+
+:8080 {
+  @telegram_webhook path /webhook/*
+
+  handle @telegram_webhook {
+    reverse_proxy rag-n8n-local:5678
+  }
+
+  handle {
+    respond "Not Found" 404
+  }
+}
