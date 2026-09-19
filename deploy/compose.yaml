@@ -24,6 +24,8 @@ services:
     volumes:
       - rag-pgdata-local:/var/lib/postgresql/data
       - ../deploy/postgres-init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cluster_admin} -d ${POSTGRES_DB:-automation}"]
       interval: 10s
@@ -38,7 +40,7 @@ services:
   # n8n orchestration
   # ---------------------------------------------------------------------------
   n8n:
-    image: n8nio/n8n:1.62.1
+    image: n8nio/n8n:1.123.81
     container_name: rag-n8n-local
     depends_on:
       postgres:
@@ -65,6 +67,9 @@ services:
       EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS: "false"
       EXECUTIONS_DATA_PRUNE: "true"
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
+      # The ingestion Code node uses crypto.createHash for corpus fingerprints.
+      # Keep the allowlist narrow; do not enable arbitrary built-in modules.
+      NODE_FUNCTION_ALLOW_BUILTIN: crypto
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
       N8N_RESTRICT_FILE_ACCESS_TO: /files/docs
       N8N_DIAGNOSTICS_ENABLED: "false"
