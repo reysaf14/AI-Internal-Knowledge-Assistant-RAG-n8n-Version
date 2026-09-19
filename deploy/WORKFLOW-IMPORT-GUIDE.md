@@ -82,6 +82,8 @@ After import, each workflow needs credential rebinding in n8n UI:
 | Load RAG Settings, staging/failure PostgreSQL nodes | `postgres-rag-ingest` | Connection to `rag` schema (role: `rag_ingest`) |
 | Embedding Request | `ai-provider` | OpenAI-compatible base URL + API key |
 
+For the project Compose n8n container, use PostgreSQL host `postgres`. If n8n runs as a separate Windows/host instance, PostgreSQL is published only on loopback by `compose.yaml`; use host `127.0.0.1` and port `5432` instead. Do not use `localhost`/`127.0.0.1` from a container that is not the host, and do not expose PostgreSQL on a public interface.
+
 ### Workflow 02 — Telegram Grounded Q&A
 
 | Node | Credential Required | Type |
@@ -105,6 +107,10 @@ Use this profile only for local runtime readiness and provider-contract testing.
 | Optional alternative chat/vision model | `gemma4:e2b-it-qat` |
 
 The n8n container must be able to reach Ollama through `host.docker.internal`; `127.0.0.1` inside the container is not the Windows host. Configure Ollama to listen on a host-reachable interface before testing. The Qwen workflow request sets `reasoning_effort: 'none'` to avoid spending the short tester budget on hidden reasoning; this is a runtime test setting, not a quality claim.
+
+The exported workflows use explicit Docker-local endpoint paths (`/v1/embeddings` and `/v1/chat/completions`). The `ai-provider` credential supplies the OpenAI-compatible authentication fields; its Base URL is retained for credential testing, but is not interpolated into the HTTP Request node URL because credential fields are not available there as workflow expressions.
+
+The HTTP Request JSON bodies use expressions that return native objects. Keep this form in n8n `1.123.81`; wrapping the expression with `JSON.stringify(...)` can make the JSON parameter fail validation in this node version.
 
 ### Environment-Specific Settings (in n8n UI)
 
