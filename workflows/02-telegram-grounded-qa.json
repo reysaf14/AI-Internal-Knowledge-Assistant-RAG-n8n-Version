@@ -218,7 +218,7 @@
         "nodeCredentialType": "openAiApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: $('Build Prompt').first().json.model, messages: $('Build Prompt').first().json.messages, temperature: 0, max_tokens: Number($('Build Prompt').first().json.output_bound) }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: $('Build Prompt').first().json.model, messages: $('Build Prompt').first().json.messages, temperature: 0, max_tokens: Number($('Build Prompt').first().json.output_bound), reasoning_effort: 'none' }) }}",
         "options": { "timeout": "={{ Number($('Validate Input').first().json.ai_timeout_max) }}" }
       },
       "id": "m2-chat-completion",
