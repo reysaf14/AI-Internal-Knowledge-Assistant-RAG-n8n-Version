@@ -12,7 +12,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT config_revision, chat_model, embedding_model, embedding_profile_id, embedding_dimension, ai_timeout_max FROM rag.rag_settings WHERE id = 1",
+        "query": "SELECT config_revision, chat_model, embedding_model, embedding_profile_id, embedding_dimension, ai_timeout_max, ingest_timeout_max FROM rag.rag_settings WHERE id = 1",
         "options": {}
       },
       "id": "m1-load-settings",
@@ -24,13 +24,14 @@
       "onError": "continueErrorOutput",
       "credentials": {
         "postgres": {
+          "id": "BRjgs0DWm9bmWw4I",
           "name": "postgres-rag-ingest"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "const s = $input.first()?.json || {};\nconst required = ['config_revision', 'chat_model', 'embedding_model', 'embedding_profile_id', 'embedding_dimension', 'ai_timeout_max'];\nconst missing = required.filter((key) => s[key] === null || s[key] === undefined || s[key] === '' || s[key] === 'UNINITIALIZED');\nif (missing.length) throw new Error(`rag_settings_incomplete:${missing.join(',')}`);\nif (!Number.isInteger(Number(s.embedding_dimension)) || Number(s.embedding_dimension) <= 0) throw new Error(`embedding_dimension_invalid:${s.embedding_dimension}`);\nif (!Number.isInteger(Number(s.ai_timeout_max)) || Number(s.ai_timeout_max) <= 0) throw new Error(`ai_timeout_invalid:${s.ai_timeout_max}`);\nreturn [{ json: s }];"
+        "jsCode": "const s = $input.first()?.json || {};\nconst required = ['config_revision', 'chat_model', 'embedding_model', 'embedding_profile_id', 'embedding_dimension', 'ai_timeout_max', 'ingest_timeout_max'];\nconst missing = required.filter((key) => s[key] === null || s[key] === undefined || s[key] === '' || s[key] === 'UNINITIALIZED');\nif (missing.length) throw new Error(`rag_settings_incomplete:${missing.join(',')}`);\nif (!Number.isInteger(Number(s.embedding_dimension)) || Number(s.embedding_dimension) <= 0) throw new Error(`embedding_dimension_invalid:${s.embedding_dimension}`);\nif (!Number.isInteger(Number(s.ai_timeout_max)) || Number(s.ai_timeout_max) <= 0) throw new Error(`ai_timeout_invalid:${s.ai_timeout_max}`);\nif (!Number.isInteger(Number(s.ingest_timeout_max)) || Number(s.ingest_timeout_max) <= 0) throw new Error(`ingest_timeout_invalid:${s.ingest_timeout_max}`);\nreturn [{ json: s }];"
       },
       "id": "m1-validate-settings",
       "name": "Validate RAG Settings",
@@ -105,7 +106,7 @@
         ]
       },
         "options": {
-          "timeout": "={{ Number($('Load RAG Settings').first().json.ai_timeout_max) }}"
+          "timeout": "={{ Number($('Load RAG Settings').first().json.ingest_timeout_max) }}"
         }
       },
       "id": "m1-embedding-request",
@@ -117,6 +118,7 @@
       "onError": "continueErrorOutput",
       "credentials": {
         "openAiApi": {
+          "id": "MJy2M7fkfaZLUUKY",
           "name": "ai-provider"
         }
       }
@@ -156,7 +158,7 @@
       "position": [1260, 0],
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "credentials": { "postgres": { "name": "postgres-rag-ingest" } }
+      "credentials": { "postgres": { "id": "BRjgs0DWm9bmWw4I", "name": "postgres-rag-ingest" } }
     },
     {
       "parameters": {
@@ -182,7 +184,7 @@
       "position": [1480, 0],
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "credentials": { "postgres": { "name": "postgres-rag-ingest" } }
+      "credentials": { "postgres": { "id": "BRjgs0DWm9bmWw4I", "name": "postgres-rag-ingest" } }
     },
     {
       "parameters": {
@@ -198,7 +200,7 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "credentials": { "postgres": { "name": "postgres-rag-ingest" } }
+      "credentials": { "postgres": { "id": "BRjgs0DWm9bmWw4I", "name": "postgres-rag-ingest" } }
     },
     {
       "parameters": {
@@ -223,7 +225,7 @@
       "typeVersion": 2.6,
       "position": [1920, 0],
       "onError": "continueErrorOutput",
-      "credentials": { "postgres": { "name": "postgres-rag-ingest" } }
+      "credentials": { "postgres": { "id": "BRjgs0DWm9bmWw4I", "name": "postgres-rag-ingest" } }
     },
     {
       "parameters": {
@@ -261,7 +263,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [1480, 220],
-      "credentials": { "postgres": { "name": "postgres-rag-ingest" } }
+      "credentials": { "postgres": { "id": "BRjgs0DWm9bmWw4I", "name": "postgres-rag-ingest" } }
     },
     {
       "parameters": {},
@@ -298,7 +300,7 @@
   "staticData": null,
   "pinData": {},
   "active": false,
-  "meta": { "templateCredsSetupCompleted": false, "versionId": "m6-live-ingestion-v2" },
+  "meta": { "templateCredsSetupCompleted": false, "versionId": "m6-live-ingestion-v2-bounded" },
   "tags": [],
-  "versionId": "m6-live-ingestion-v2"
+  "versionId": "m6-live-ingestion-v2-bounded"
 }
