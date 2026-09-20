@@ -178,7 +178,12 @@ class MockHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
+            # The timeout/abort fixture intentionally closes the client socket.
+            # This is a test outcome, not a provider mock failure.
+            return
 
     def _read_json(self):
         length = int(self.headers.get("Content-Length", "0"))
@@ -243,7 +248,10 @@ class MockHandler(BaseHTTPRequestHandler):
                 raw = b"{invalid json\" choices\""
                 self.send_header("Content-Length", str(len(raw)))
                 self.end_headers()
-                self.wfile.write(raw)
+                try:
+                    self.wfile.write(raw)
+                except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
+                    pass
                 return
             answer, sources = _find_chat_response(question)
             payload = {
