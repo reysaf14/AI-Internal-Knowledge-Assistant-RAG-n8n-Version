@@ -7,7 +7,7 @@ These scripts must be run in the following order during initial deployment:
 ### 1. `01-init.sh` — **Run as superuser by the PostgreSQL image**
 - Installs pgvector and creates schemas, roles, grants, and RAG tables.
 - Reads role passwords only from container environment variables.
-- Creates the workflow alignment columns `embedding_profile_id`, `ai_timeout_max`, and `telegram_allowed_chat_id`.
+- Creates the workflow alignment columns `embedding_profile_id`, online `ai_timeout_max`, offline batch `ingest_timeout_max`, and `telegram_allowed_chat_id`.
 
 ### 2. `02-rag-schema-alignment.sql` — **Existing-volume migration**
 - Adds the alignment columns idempotently when an older local volume already exists.
