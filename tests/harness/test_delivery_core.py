@@ -122,41 +122,42 @@ def _load_fixtures():
     depth = 0
     in_str = False
     escaped = False
-    for line in open(path, encoding="utf-8"):
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#"):
-            continue
-        if not current:
-            # starting a new block — reset depth tracking
-            depth = 0
-            in_str = False
-            escaped = False
-        current.append(stripped)
-        # detect end of a complete JSON object (balanced braces)
-        for ch in stripped:
-            if in_str:
-                if escaped:
-                    escaped = False
-                elif ch == "\\":
-                    escaped = True
-                elif ch == '"':
-                    in_str = False
-            else:
-                if ch == '"':
-                    in_str = True
-                elif ch == '{':
-                    depth += 1
-                elif ch == '}':
-                    depth -= 1
-        if depth <= 0 and current:
-            text = "\n".join(current)
-            try:
-                payload = json.loads(text)
-                uid = payload.get("update_id")
-                fixtures[uid] = TelegramUpdate.from_telegram_payload(payload)
-            except json.JSONDecodeError as exc:
-                print(f"JSON parse error in fixture block: {exc}")
-            current = []
+    with open(path, encoding="utf-8") as fixture_file:
+        for line in fixture_file:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            if not current:
+                # starting a new block — reset depth tracking
+                depth = 0
+                in_str = False
+                escaped = False
+            current.append(stripped)
+            # detect end of a complete JSON object (balanced braces)
+            for ch in stripped:
+                if in_str:
+                    if escaped:
+                        escaped = False
+                    elif ch == "\\":
+                        escaped = True
+                    elif ch == '"':
+                        in_str = False
+                else:
+                    if ch == '"':
+                        in_str = True
+                    elif ch == '{':
+                        depth += 1
+                    elif ch == '}':
+                        depth -= 1
+            if depth <= 0 and current:
+                text = "\n".join(current)
+                try:
+                    payload = json.loads(text)
+                    uid = payload.get("update_id")
+                    fixtures[uid] = TelegramUpdate.from_telegram_payload(payload)
+                except json.JSONDecodeError as exc:
+                    print(f"JSON parse error in fixture block: {exc}")
+                current = []
     return fixtures
 
 
