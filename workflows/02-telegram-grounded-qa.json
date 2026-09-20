@@ -328,7 +328,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO rag.safe_events (correlation_id, workflow, stage, status, duration_ms, error_category, config_revision, corpus_version) VALUES ($1, '02-telegram-grounded-qa', 'grounding_diagnostic', 'observed', $2, $3, $4, $5) RETURNING id",
+        "query": "INSERT INTO rag.safe_events (correlation_id, workflow, stage, status, duration_ms, error_category, config_revision, corpus_version) VALUES ($1, '02-telegram-grounded-qa', 'grounding_diagnostic', 'observed', $2, $3, $4, $5)",
         "options": { "queryReplacement": "={{ $json.correlation_id }}, {{ $json.diagnostic_duration_ms }}, {{ $json.diagnostic_code }}, {{ $json.config_revision || null }}, {{ $json.active_corpus_version || null }}" }
       },
       "id": "m2-record-grounding-diagnostic",
@@ -500,7 +500,7 @@
   "staticData": null,
   "pinData": {},
   "active": true,
-  "meta": { "templateCredsSetupCompleted": false, "versionId": "m7-support-gate-trace-2026-09-20-v8" },
+  "meta": { "templateCredsSetupCompleted": false, "versionId": "m7-support-gate-trace-2026-09-20-v9" },
   "tags": [],
-  "versionId": "m7-support-gate-trace-2026-09-20-v8"
+  "versionId": "m7-support-gate-trace-2026-09-20-v9"
 }
