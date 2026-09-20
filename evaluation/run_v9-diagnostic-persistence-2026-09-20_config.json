@@ -1,0 +1,50 @@
+{
+  "run_id": "M7-v9-diagnostic-persistence-independent-qa-2026-09-20",
+  "date": "2026-09-20",
+  "channel": "Telegram sandbox via Telegram Web",
+  "workflow_id": "IAOqkQsNamEJarHF",
+  "workflow_revision": "m7-support-gate-trace-2026-09-20-v9",
+  "dataset": "evaluation/qa-dataset.csv",
+  "dataset_sha256": "6B4587A7DCB7EB04630801D7073F7424ED8274D7245746A3C82CD658DFF60614",
+  "evaluation_readme_sha256": "FD9BDAE3F1B0CB9D7C51D1F40F1A06AA95850AA674EB95DD07029A5CA56259EC",
+  "workflow_export_sha256": "18E4D163F2D410A31F2135B53BE3A93C45E137E0924A0234755D11235A31ECC0",
+  "runtime": {
+    "n8n": "1.123.81",
+    "chat_model": "gemma4:e2b-it-qat",
+    "embedding_model": "embeddinggemma:300m-qat-q4_0",
+    "embedding_dimension": 768,
+    "retrieval_limit": 5,
+    "minimum_similarity": 0.25,
+    "ai_timeout_max_ms": 4000,
+    "context_bound": 3000,
+    "output_bound": 192,
+    "active_corpus_version": "sha256:61b7301108de25c111d815812e8695f150e4e958dbbd9c40dd03dfd1baa6d109"
+  },
+  "database_baseline": {
+    "telegram_updates": 112,
+    "safe_events": 104,
+    "grounding_diagnostic": 0
+  },
+  "database_after": {
+    "telegram_updates": 128,
+    "safe_events": 120,
+    "v9_safe_events": 16,
+    "v9_delivery_rows": 16,
+    "v9_grounding_diagnostic_rows": 0
+  },
+  "matrix_attempt": {
+    "final_cases": 15,
+    "final_delivered": 15,
+    "final_latency_under_5000_ms": 15,
+    "transient_initial_item1_failure": true,
+    "transient_initial_item1_duration_ms": 5013,
+    "transient_initial_item1_error_category": "provider_or_runtime_failure"
+  },
+  "deterministic_regression": {
+    "test_ingestion": "19/19",
+    "test_qa_core": "21/21",
+    "test_delivery_core": "27/27",
+    "total": "67/67"
+  },
+  "evidence_policy": "sanitized outcomes only; no credentials, Telegram payloads, raw model bodies, or PII persisted"
+}

@@ -1,0 +1,31 @@
+{
+  "run_label": "v8-support-boundary-2026-09-20",
+  "candidate": "m7-support-gate-trace-2026-09-20-v8",
+  "config_revision": "m7-support-gate-trace-2026-09-20-v8",
+  "chat_model": "gemma4:e2b-it-qat",
+  "embedding_model": "embeddinggemma:300m-qat-q4_0",
+  "embedding_profile_id": "ollama:embeddinggemma:300m-qat-q4_0:768",
+  "embedding_dimension": 768,
+  "retrieval_limit": 5,
+  "minimum_similarity": 0.25,
+  "context_bound": 3000,
+  "output_bound": 192,
+  "ai_timeout_max_ms": 4000,
+  "corpus_version": "sha256:61b7301108de25c111d815812e8695f150e4e958dbbd9c40dd03dfd1baa6d109",
+  "temperature": 0,
+  "target": "authorized synthetic Telegram sandbox",
+  "baseline": {
+    "telegram_updates": 97,
+    "safe_events": 89
+  },
+  "post_run": {
+    "telegram_updates": 112,
+    "safe_events": 104,
+    "grounding_diagnostic": 0
+  },
+  "warmup": {
+    "container_embed": {"http": 200, "elapsed_ms": 192},
+    "container_chat": {"http": 200, "elapsed_ms": 477}
+  },
+  "secrets_or_payloads_persisted": false
+}
