@@ -243,7 +243,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const value = $input.first().json; return [{ json: { ...value, request_body: JSON.stringify({ model: value.model, messages: value.messages, stream: false, think: false, options: { temperature: 0, num_predict: Number(value.output_bound) } }) } }];"
+        "jsCode": "const value = $input.first().json; return [{ json: { ...value, request_body: JSON.stringify({ model: value.model, messages: value.messages, stream: false, think: false, keep_alive: '10m', options: { temperature: 0, num_predict: Number(value.output_bound) } }) } }];"
       },
       "id": "m2-prepare-chat",
       "name": "Prepare Chat Completion Request",
@@ -299,60 +299,12 @@
       "position": [1860, 120]
     },
     {
-      "parameters": { "jsCode": "const branch = $input.first()?.json || {}; const base = $('Validate Input').first()?.json || $('Normalize Update').first()?.json || {}; return [{ json: { ...base, text: 'Layanan pengetahuan sedang tidak tersedia. Silakan coba lagi nanti.', response_status: 'unavailable', error_category: branch.error_category || 'provider_or_runtime_failure' } }];" },
+      "parameters": { "jsCode": "const branch = $input.first()?.json || {}; const base = $('Validate Input').first()?.json || $('Normalize Update').first()?.json || {}; const raw = branch.error?.message || branch.error?.description || branch.message || ''; const signal = `${branch.runtime_error || ''} ${raw}`.toLowerCase(); const error_category = branch.error_category || branch.runtime_error || (signal.includes('embedding') ? 'embedding_request_failure' : signal.includes('retriev') || signal.includes('vector') ? 'retrieval_failure' : signal.includes('chat') || signal.includes('completion') ? 'chat_completion_failure' : signal.includes('claim') || signal.includes('update') ? 'claim_update_failure' : 'provider_or_runtime_failure'); return [{ json: { ...base, text: 'Layanan pengetahuan sedang tidak tersedia. Silakan coba lagi nanti.', response_status: 'unavailable', error_category } }];" },
       "id": "m2-unavailable",
       "name": "Build Service-Unavailable Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [1640, 360]
-    },
-    {
-      "parameters": { "jsCode": "const base = $('Validate Input').first()?.json || $('Normalize Update').first()?.json || {}; return [{ json: { ...base, error_category: 'settings_query_failure' } }];" },
-      "id": "m2-failure-settings",
-      "name": "Classify Settings Failure",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1420, 420]
-    },
-    {
-      "parameters": { "jsCode": "const base = $('Validate Input').first()?.json || $('Normalize Update').first()?.json || {}; return [{ json: { ...base, error_category: 'runtime_settings_incomplete' } }];" },
-      "id": "m2-failure-runtime",
-      "name": "Classify Runtime Failure",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [360, 420]
-    },
-    {
-      "parameters": { "jsCode": "const base = $('Validate Input').first()?.json || $('Normalize Update').first()?.json || {}; return [{ json: { ...base, error_category: 'claim_update_failure' } }];" },
-      "id": "m2-failure-claim",
-      "name": "Classify Claim Failure",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [800, 420]
-    },
-    {
-      "parameters": { "jsCode": "const item = $input.first() || {}; const raw = item.json?.error?.message || item.error?.message || item.json?.message || ''; const detail = String(raw).replace(/Bearer\\s+\\S+/gi, 'Bearer [redacted]').slice(0, 160); const base = $('Validate Input').first()?.json || $('Normalize Update').first()?.json || {}; return [{ json: { ...base, error_category: detail ? `embedding_request_failure:${detail}` : 'embedding_request_failure' } }];" },
-      "id": "m2-failure-embedding",
-      "name": "Classify Embedding Failure",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1200, 420]
-    },
-    {
-      "parameters": { "jsCode": "const base = $('Validate Input').first()?.json || $('Normalize Update').first()?.json || {}; return [{ json: { ...base, error_category: 'retrieval_failure' } }];" },
-      "id": "m2-failure-retrieval",
-      "name": "Classify Retrieval Failure",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1420, 520]
-    },
-    {
-      "parameters": { "jsCode": "const item = $input.first() || {}; const raw = item.json?.error?.message || item.error?.message || item.json?.message || ''; const detail = String(raw).replace(/Bearer\\s+\\S+/gi, 'Bearer [redacted]').slice(0, 160); const base = $('Validate Input').first()?.json || $('Normalize Update').first()?.json || {}; return [{ json: { ...base, error_category: detail ? `chat_completion_failure:${detail}` : 'chat_completion_failure' } }];" },
-      "id": "m2-failure-chat",
-      "name": "Classify Chat Failure",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [2300, 420]
     },
     {
       "parameters": { "jsCode": "const value = $input.first()?.json || {}; return [{ json: { ...value, delivery_context_ready: true } }];" },
@@ -474,29 +426,23 @@
   "connections": {
     "Telegram Trigger": { "main": [[{ "node": "Normalize Update", "type": "main", "index": 0 }]] },
     "Normalize Update": { "main": [[{ "node": "Settings Query", "type": "main", "index": 0 }]] },
-    "Settings Query": { "main": [[{ "node": "Validate Input", "type": "main", "index": 0 }], [{ "node": "Classify Settings Failure", "type": "main", "index": 0 }]] },
+    "Settings Query": { "main": [[{ "node": "Validate Input", "type": "main", "index": 0 }], [{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
     "Validate Input": { "main": [[{ "node": "Input Valid?", "type": "main", "index": 0 }]] },
     "Input Valid?": { "main": [[{ "node": "Validate Runtime Settings", "type": "main", "index": 0 }], [{ "node": "Drop Invalid Update", "type": "main", "index": 0 }]] },
     "Validate Runtime Settings": { "main": [[{ "node": "Runtime Ready?", "type": "main", "index": 0 }]] },
-    "Runtime Ready?": { "main": [[{ "node": "Claim Update", "type": "main", "index": 0 }], [{ "node": "Classify Runtime Failure", "type": "main", "index": 0 }]] },
-    "Claim Update": { "main": [[{ "node": "Normalize Claim", "type": "main", "index": 0 }], [{ "node": "Classify Claim Failure", "type": "main", "index": 0 }]] },
+    "Runtime Ready?": { "main": [[{ "node": "Claim Update", "type": "main", "index": 0 }], [{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
+    "Claim Update": { "main": [[{ "node": "Normalize Claim", "type": "main", "index": 0 }], [{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
     "Normalize Claim": { "main": [[{ "node": "Claim Won?", "type": "main", "index": 0 }]] },
     "Claim Won?": { "main": [[{ "node": "Prepare Query Embedding Request", "type": "main", "index": 0 }], [{ "node": "Duplicate Stop", "type": "main", "index": 0 }]] },
     "Prepare Query Embedding Request": { "main": [[{ "node": "Query Embedding", "type": "main", "index": 0 }]] },
-    "Query Embedding": { "main": [[{ "node": "Prepare Retrieval Query", "type": "main", "index": 0 }], [{ "node": "Classify Embedding Failure", "type": "main", "index": 0 }]] },
-    "Prepare Retrieval Query": { "main": [[{ "node": "PGVector Retrieval", "type": "main", "index": 0 }], [{ "node": "Classify Retrieval Failure", "type": "main", "index": 0 }]] },
-    "PGVector Retrieval": { "main": [[{ "node": "Filter Evidence", "type": "main", "index": 0 }], [{ "node": "Classify Retrieval Failure", "type": "main", "index": 0 }]] },
+    "Query Embedding": { "main": [[{ "node": "Prepare Retrieval Query", "type": "main", "index": 0 }], [{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
+    "Prepare Retrieval Query": { "main": [[{ "node": "PGVector Retrieval", "type": "main", "index": 0 }], [{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
+    "PGVector Retrieval": { "main": [[{ "node": "Filter Evidence", "type": "main", "index": 0 }], [{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
     "Filter Evidence": { "main": [[{ "node": "Evidence Available?", "type": "main", "index": 0 }]] },
     "Evidence Available?": { "main": [[{ "node": "Build Prompt", "type": "main", "index": 0 }], [{ "node": "Build Abstention Response", "type": "main", "index": 0 }]] },
     "Build Prompt": { "main": [[{ "node": "Prepare Chat Completion Request", "type": "main", "index": 0 }]] },
     "Prepare Chat Completion Request": { "main": [[{ "node": "Chat Completion", "type": "main", "index": 0 }]] },
-    "Chat Completion": { "main": [[{ "node": "Validate Citation & Attach Sources", "type": "main", "index": 0 }], [{ "node": "Classify Chat Failure", "type": "main", "index": 0 }]] },
-    "Classify Settings Failure": { "main": [[{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
-    "Classify Runtime Failure": { "main": [[{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
-    "Classify Claim Failure": { "main": [[{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
-    "Classify Embedding Failure": { "main": [[{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
-    "Classify Retrieval Failure": { "main": [[{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
-    "Classify Chat Failure": { "main": [[{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
+    "Chat Completion": { "main": [[{ "node": "Validate Citation & Attach Sources", "type": "main", "index": 0 }], [{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
     "Validate Citation & Attach Sources": { "main": [[{ "node": "Prepare Telegram Delivery", "type": "main", "index": 0 }]] },
     "Build Abstention Response": { "main": [[{ "node": "Prepare Telegram Delivery", "type": "main", "index": 0 }]] },
     "Build Service-Unavailable Response": { "main": [[{ "node": "Prepare Telegram Delivery", "type": "main", "index": 0 }]] },
@@ -517,7 +463,7 @@
   "staticData": null,
   "pinData": {},
   "active": false,
-  "meta": { "templateCredsSetupCompleted": false, "versionId": "m6-aligned-v1" },
+  "meta": { "templateCredsSetupCompleted": false, "versionId": "m6-gemma-e2b-clean-v1" },
   "tags": [],
-  "versionId": "m6-aligned-v1"
+  "versionId": "m6-gemma-e2b-clean-v1"
 }
