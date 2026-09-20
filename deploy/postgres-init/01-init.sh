@@ -114,6 +114,7 @@ CREATE TABLE IF NOT EXISTS rag.rag_settings (
     context_bound               INTEGER DEFAULT 3000,
     output_bound                INTEGER DEFAULT 500,
     ai_timeout_max              INTEGER,
+    ingest_timeout_max          INTEGER,
     telegram_allowed_chat_id    TEXT,
     active_corpus_version       TEXT,
     updated_at                  TIMESTAMPTZ NOT NULL DEFAULT now(),
