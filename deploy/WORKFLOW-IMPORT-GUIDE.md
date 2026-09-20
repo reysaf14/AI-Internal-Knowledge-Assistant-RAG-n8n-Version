@@ -6,7 +6,7 @@
 
 ## Overview
 
-Workflow files in `workflows/` are DRAFT exports (current workflow 02 version `m6-gemma-e2b-clean-v1`), unpublished. The local working export contains environment-specific credential metadata for the current n8n instance; a clean instance still requires credential rebinding before activation.
+Workflow files in `workflows/` are DRAFT exports (current workflow 02 version `m6-gemma-e2b-bounded-v2`), unpublished. The local working export contains environment-specific credential metadata for the current n8n instance; a clean instance still requires credential rebinding before activation.
 
 **Workflow JSON on disk ≠ imported or active workflow.** This guide documents the import mechanism for the actual n8n instance.
 
@@ -104,9 +104,14 @@ Use this profile only for local runtime readiness and provider-contract testing.
 | `rag_settings.chat_model` | `gemma4:e2b-it-qat` (current local tester binding; runtime-selectable) |
 | `rag_settings.embedding_model` | `embeddinggemma:300m-qat-q4_0` |
 | `rag_settings.embedding_dimension` | `768` |
+| `rag_settings.config_revision` | `m6-local-gemma-bounded-2026-09-20` |
+| `rag_settings.ai_timeout_max` | `3000` ms; workflow 02 dynamically reduces this against the fixed `<5000` ms business deadline and reserves `1000` ms for Telegram delivery |
+| `rag_settings.ingest_timeout_max` | `120000` ms; offline workflow 01 batch budget, separate from the online Telegram SLA |
 | Optional alternative chat/vision model | `qwen3-8b-2k:latest` |
 
 The n8n container must be able to reach Ollama through `host.docker.internal`; `127.0.0.1` inside the container is not the Windows host. Configure Ollama to listen on a host-reachable interface before testing. The current local tester request uses Ollama's native `/api/chat` contract with `think: false`, `temperature: 0`, and a bounded `num_predict`; this is a runtime test setting, not a quality claim.
+
+Workflow 02 carries `start_ts` from the trigger. Before each AI call it computes the remaining deadline budget; an exhausted budget follows the sanitized service-unavailable branch. This bounded control is ready for QA profiling but does not itself prove the required `15/15` responses below `5,000ms`.
 
 The exported workflow uses explicit Docker-local endpoint paths (`/v1/embeddings` and native `/api/chat`). The `ai-provider` credential supplies the authentication fields; its Base URL is retained for credential testing, but is not interpolated into the HTTP Request node URL because credential fields are not available there as workflow expressions.
 
