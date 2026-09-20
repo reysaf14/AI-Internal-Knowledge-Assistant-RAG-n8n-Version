@@ -6,7 +6,7 @@
 
 ## Overview
 
-Workflow files in `workflows/` are DRAFT exports (m6-aligned-v1), unpublished and without credential bindings. They must be imported into a running n8n instance before they can execute.
+Workflow files in `workflows/` are DRAFT exports (current workflow 02 version `m6-gemma-e2b-clean-v1`), unpublished. The local working export contains environment-specific credential metadata for the current n8n instance; a clean instance still requires credential rebinding before activation.
 
 **Workflow JSON on disk ≠ imported or active workflow.** This guide documents the import mechanism for the actual n8n instance.
 
@@ -101,14 +101,14 @@ Use this profile only for local runtime readiness and provider-contract testing.
 |---|---|
 | `ai-provider` base URL | `http://host.docker.internal:11434/v1` |
 | `ai-provider` API key | Any local-only non-secret placeholder if the n8n credential form requires one; Ollama does not use it for local auth |
-| `rag_settings.chat_model` | `qwen3-8b-2k:latest` |
+| `rag_settings.chat_model` | `gemma4:e2b-it-qat` (current local tester binding; runtime-selectable) |
 | `rag_settings.embedding_model` | `embeddinggemma:300m-qat-q4_0` |
 | `rag_settings.embedding_dimension` | `768` |
-| Optional alternative chat/vision model | `gemma4:e2b-it-qat` |
+| Optional alternative chat/vision model | `qwen3-8b-2k:latest` |
 
-The n8n container must be able to reach Ollama through `host.docker.internal`; `127.0.0.1` inside the container is not the Windows host. Configure Ollama to listen on a host-reachable interface before testing. The Qwen workflow request sets `reasoning_effort: 'none'` to avoid spending the short tester budget on hidden reasoning; this is a runtime test setting, not a quality claim.
+The n8n container must be able to reach Ollama through `host.docker.internal`; `127.0.0.1` inside the container is not the Windows host. Configure Ollama to listen on a host-reachable interface before testing. The current local tester request uses Ollama's native `/api/chat` contract with `think: false`, `temperature: 0`, and a bounded `num_predict`; this is a runtime test setting, not a quality claim.
 
-The exported workflows use explicit Docker-local endpoint paths (`/v1/embeddings` and `/v1/chat/completions`). The `ai-provider` credential supplies the OpenAI-compatible authentication fields; its Base URL is retained for credential testing, but is not interpolated into the HTTP Request node URL because credential fields are not available there as workflow expressions.
+The exported workflow uses explicit Docker-local endpoint paths (`/v1/embeddings` and native `/api/chat`). The `ai-provider` credential supplies the authentication fields; its Base URL is retained for credential testing, but is not interpolated into the HTTP Request node URL because credential fields are not available there as workflow expressions.
 
 The HTTP Request nodes use `Raw` body mode with `Content-Type: application/json`. Ingestion builds the 297-input payload once in `Prepare Embedding Request`, then sends the resulting `request_body` string from a single input item. This avoids both the `Using JSON` coercion issue and the unreliable large inline expression in n8n `1.123.81`. `Embedding Request` also retains `Execute Once` as a defensive guard against repeated batch requests.
 
