@@ -6,6 +6,7 @@
 
 ALTER TABLE rag.rag_settings
     ADD COLUMN IF NOT EXISTS ai_timeout_max INTEGER,
+    ADD COLUMN IF NOT EXISTS ingest_timeout_max INTEGER,
     ADD COLUMN IF NOT EXISTS telegram_allowed_chat_id TEXT;
 
 ALTER TABLE rag.documents
