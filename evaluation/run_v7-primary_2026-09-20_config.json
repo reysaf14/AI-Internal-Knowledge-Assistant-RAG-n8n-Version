@@ -1,0 +1,22 @@
+{
+  "run_label": "v7-primary-2026-09-20",
+  "candidate": "m7-citation-contract-2026-09-20-v7",
+  "config_revision": "m7-citation-contract-2026-09-20-v7",
+  "chat_model": "gemma4:e2b-it-qat",
+  "embedding_model": "embeddinggemma:300m-qat-q4_0",
+  "embedding_profile_id": "ollama:embeddinggemma:300m-qat-q4_0:768",
+  "embedding_dimension": 768,
+  "retrieval_limit": 5,
+  "minimum_similarity": 0.25,
+  "context_bound": 3000,
+  "output_bound": 192,
+  "ai_timeout_max_ms": 4000,
+  "corpus_version": "sha256:61b7301108de25c111d815812e8695f150e4e958dbbd9c40dd03dfd1baa6d109",
+  "temperature": 0,
+  "target": "authorized synthetic Telegram sandbox",
+  "warmup": {
+    "pass_1": {"embedding_http": 200, "embedding_elapsed_ms": 2932, "chat_http": 200, "chat_elapsed_ms": 19124, "classification": "exploratory_cold_idle_start"},
+    "pass_2": {"embedding_http": 200, "embedding_elapsed_ms": 2064, "chat_http": 200, "chat_elapsed_ms": 236, "classification": "warm_precondition_used_for_primary_run"}
+  },
+  "secrets_or_payloads_persisted": false
+}

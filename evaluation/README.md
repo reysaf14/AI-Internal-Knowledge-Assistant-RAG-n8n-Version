@@ -3,7 +3,7 @@
 Architecture version: 1.2
 Dataset: `evaluation/qa-dataset.csv`
 Composition: 12 supported + 3 unsupported
-Status: DRAFT — requires Human semantic approval before QA
+Status: APPROVED FOR V7 QA RERUN — corpus-backed oracle reconciliation and item-14 replacement approved by Human on 2026-09-20; execution and verdict remain QA-owned
 
 ## Dataset contract
 
@@ -13,7 +13,7 @@ The CSV is authoritative. It contains 15 data rows after the commented metadata 
 - 3 unsupported questions: no approved source and expected abstention.
 - Every supported source label must match one of the 26 files in `docs/`.
 
-Human must verify each supported answer and source against the complete corpus before the dataset is frozen for QA. Synthetic data and sanitized evidence only; no production records, credentials, or raw Telegram payloads.
+Human approved the corpus-backed interpretation for items 1, 2, 4, 5, 6, 10, 11, and 12. The working oracle now follows the active corpus for those items, including the replacement of item 14 with the corpus-absent question `Bagaimana prosedur klaim biaya perjalanan dinas?`. Synthetic data and sanitized evidence only; no production records, credentials, or raw Telegram payloads. QA must still verify the responses, citations, abstentions, delivery, and latency independently.
 
 ## Rubric
 

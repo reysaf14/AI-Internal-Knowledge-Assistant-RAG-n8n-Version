@@ -1,0 +1,15 @@
+{"item":1,"delivery":"delivered","safe_event_duration_ms":2332,"source":"09_FAQ_Jam_Operasional_dan_Lokasi.md","observed":"supported answer; relevant corroborating source","verdict":"PASS"}
+{"item":2,"delivery":"delivered","safe_event_duration_ms":1937,"source":"09_FAQ_Jam_Operasional_dan_Lokasi.md","observed":"supported answer omitted the mandatory motor-capacity fact","verdict":"FAIL"}
+{"item":3,"delivery":"delivered","safe_event_duration_ms":2144,"source":"11_FAQ_Kebijakan_Retur_dan_Tukar_Barang.md","observed":"grounded answer with relevant source","verdict":"PASS"}
+{"item":4,"delivery":"delivered","safe_event_duration_ms":2342,"source":"01_SOP_Buka_Toko.md","observed":"grounded answer omitted multiple mandatory opening steps","verdict":"FAIL"}
+{"item":5,"delivery":"delivered","safe_event_duration_ms":3573,"source":"03_SOP_Penanganan_Kas_dan_Setoran_Harian.md","observed":"grounded answer omitted mandatory time, cash-float, safe, and bank-schedule details","verdict":"FAIL"}
+{"item":6,"delivery":"delivered","safe_event_duration_ms":2522,"source":"02_SOP_Tutup_Toko.md","observed":"grounded answer omitted multiple mandatory closing steps","verdict":"FAIL"}
+{"item":7,"delivery":"delivered","safe_event_duration_ms":2438,"source":"16_Panduan_Komplain_Barang_Rusak.md","observed":"grounded answer conveyed the complaint procedure and evidence handling","verdict":"PASS"}
+{"item":8,"delivery":"delivered","safe_event_duration_ms":2569,"source":"18_Panduan_Komplain_Keterlambatan_Pengantaran.md","observed":"grounded answer conveyed the late-delivery escalation paths","verdict":"PASS"}
+{"item":9,"delivery":"delivered","safe_event_duration_ms":1961,"source":null,"observed":"supported question returned deterministic abstention","verdict":"FAIL"}
+{"item":10,"delivery":"delivered","safe_event_duration_ms":2413,"source":null,"observed":"supported question returned deterministic abstention","verdict":"FAIL"}
+{"item":11,"delivery":"delivered","safe_event_duration_ms":2284,"source":"25_Kebijakan_Keselamatan_Kerja_K3_Sederhana.md","observed":"grounded answer omitted the mandatory accessible-fire-extinguisher fact","verdict":"FAIL"}
+{"item":12,"delivery":"delivered","safe_event_duration_ms":2157,"source":"09_FAQ_Jam_Operasional_dan_Lokasi.md","observed":"correct corpus-backed address with relevant corroborating source","verdict":"PASS"}
+{"item":13,"delivery":"delivered","safe_event_duration_ms":2085,"source":null,"observed":"exact unsupported abstention","verdict":"PASS"}
+{"item":14,"delivery":"delivered","safe_event_duration_ms":1558,"source":null,"observed":"exact unsupported abstention for replacement travel-claim question","verdict":"PASS"}
+{"item":15,"delivery":"delivered","safe_event_duration_ms":2692,"source":"19_Panduan_Eskalasi_Komplain_ke_Manajer.md","observed":"unsupported loan question received a cited escalation/contact claim","verdict":"FAIL"}
