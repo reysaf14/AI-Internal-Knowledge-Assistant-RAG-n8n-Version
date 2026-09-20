@@ -12,7 +12,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const update = $input.first()?.json || {};\nconst message = update.message || {};\nconst chat = message.chat || {};\nreturn [{ json: { updateId: update.update_id ?? null, chatId: chat.id ?? null, text: typeof message.text === 'string' ? message.text.trim() : '', bot_scope_hash: 'telegram-demo-bot', start_ts: Date.now() } }];"
+        "jsCode": "const update = $input.first()?.json || {};\nconst message = update.message || {};\nconst chat = message.chat || {};\nreturn [{ json: { updateId: update.update_id ?? null, chatId: chat.id ?? null, text: typeof message.text === 'string' ? message.text.trim() : '', bot_scope_hash: 'telegram-demo-bot', start_ts: Date.now(), business_deadline_ms: 5000, delivery_reserve_ms: 1000 } }];"
       },
       "id": "m2-normalize-update",
       "name": "Normalize Update",
@@ -70,7 +70,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const s = $input.first().json;\nconst required = ['config_revision', 'chat_model', 'embedding_model', 'embedding_profile_id', 'embedding_dimension', 'retrieval_limit', 'minimum_similarity', 'context_bound', 'output_bound', 'ai_timeout_max', 'active_corpus_version'];\nconst missing = required.filter((key) => s[key] === null || s[key] === undefined || s[key] === '' || s[key] === 'UNINITIALIZED');\nconst valid = missing.length === 0 && Number(s.embedding_dimension) > 0 && Number(s.retrieval_limit) > 0 && Number(s.context_bound) > 0 && Number(s.output_bound) > 0 && Number(s.ai_timeout_max) > 0;\nreturn [{ json: { ...s, runtime_status: valid ? 'ready' : 'unavailable', runtime_error: valid ? null : 'runtime_settings_incomplete' } }];"
+        "jsCode": "const s = $input.first().json;\nconst required = ['config_revision', 'chat_model', 'embedding_model', 'embedding_profile_id', 'embedding_dimension', 'retrieval_limit', 'minimum_similarity', 'context_bound', 'output_bound', 'ai_timeout_max', 'active_corpus_version'];\nconst missing = required.filter((key) => s[key] === null || s[key] === undefined || s[key] === '' || s[key] === 'UNINITIALIZED');\nconst deadline = Number(s.business_deadline_ms);\nconst reserve = Number(s.delivery_reserve_ms);\nconst timeout = Number(s.ai_timeout_max);\nconst budgetValid = Number.isInteger(deadline) && deadline > 0 && Number.isInteger(reserve) && reserve > 0 && deadline > reserve && Number.isInteger(timeout) && timeout > 0 && timeout <= deadline - reserve;\nconst valid = missing.length === 0 && Number(s.embedding_dimension) > 0 && Number(s.retrieval_limit) > 0 && Number(s.context_bound) > 0 && Number(s.output_bound) > 0 && budgetValid;\nreturn [{ json: { ...s, runtime_status: valid ? 'ready' : 'unavailable', runtime_error: valid ? null : (missing.length ? 'runtime_settings_incomplete' : 'runtime_budget_invalid') } }];"
       },
       "id": "m2-validate-settings",
       "name": "Validate Runtime Settings",
@@ -143,13 +143,14 @@
     },
     {
       "parameters": {
-        "jsCode": "const settings = $('Validate Input').first().json; return [{ json: { ...settings, request_body: JSON.stringify({ model: settings.embedding_model, input: [settings.text] }) } }];"
+        "jsCode": "const settings = $('Validate Input').first().json;\nconst start = Number(settings.start_ts);\nconst deadline = Number(settings.business_deadline_ms);\nconst reserve = Number(settings.delivery_reserve_ms);\nconst configured = Number(settings.ai_timeout_max);\nconst elapsed = Number.isFinite(start) ? Date.now() - start : deadline;\nconst remaining = deadline - elapsed - reserve;\nif (!Number.isInteger(configured) || configured <= 0 || !Number.isInteger(deadline) || !Number.isInteger(reserve) || remaining <= 0) throw new Error('ai_budget_exhausted');\nconst ai_request_timeout_ms = Math.max(1, Math.min(configured, Math.floor(remaining)));\nreturn [{ json: { ...settings, ai_request_timeout_ms, request_body: JSON.stringify({ model: settings.embedding_model, input: [settings.text] }) } }];"
       },
       "id": "m2-prepare-embedding",
       "name": "Prepare Query Embedding Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [980, -120]
+      "position": [980, -120],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -170,7 +171,7 @@
             }
           ]
         },
-        "options": { "timeout": "={{ Number($json.ai_timeout_max) }}" }
+        "options": { "timeout": "={{ Number($json.ai_request_timeout_ms || $json.ai_timeout_max) }}" }
       },
       "id": "m2-query-embedding",
       "name": "Query Embedding",
@@ -243,13 +244,14 @@
     },
     {
       "parameters": {
-        "jsCode": "const value = $input.first().json; return [{ json: { ...value, request_body: JSON.stringify({ model: value.model, messages: value.messages, stream: false, think: false, keep_alive: '10m', options: { temperature: 0, num_predict: Number(value.output_bound) } }) } }];"
+        "jsCode": "const value = $input.first().json;\nconst start = Number(value.start_ts);\nconst deadline = Number(value.business_deadline_ms);\nconst reserve = Number(value.delivery_reserve_ms);\nconst configured = Number(value.ai_timeout_max);\nconst elapsed = Number.isFinite(start) ? Date.now() - start : deadline;\nconst remaining = deadline - elapsed - reserve;\nif (!Number.isInteger(configured) || configured <= 0 || !Number.isInteger(deadline) || !Number.isInteger(reserve) || remaining <= 0) throw new Error('ai_budget_exhausted');\nconst ai_request_timeout_ms = Math.max(1, Math.min(configured, Math.floor(remaining)));\nreturn [{ json: { ...value, ai_request_timeout_ms, request_body: JSON.stringify({ model: value.model, messages: value.messages, stream: false, think: false, keep_alive: '10m', options: { temperature: 0, num_predict: Number(value.output_bound) } }) } }];"
       },
       "id": "m2-prepare-chat",
       "name": "Prepare Chat Completion Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2080, -220]
+      "position": [2080, -220],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -270,7 +272,7 @@
             }
           ]
         },
-        "options": { "timeout": "={{ Number($json.ai_timeout_max) }}" }
+        "options": { "timeout": "={{ Number($json.ai_request_timeout_ms || $json.ai_timeout_max) }}" }
       },
       "id": "m2-chat-completion",
       "name": "Chat Completion",
@@ -434,14 +436,14 @@
     "Claim Update": { "main": [[{ "node": "Normalize Claim", "type": "main", "index": 0 }], [{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
     "Normalize Claim": { "main": [[{ "node": "Claim Won?", "type": "main", "index": 0 }]] },
     "Claim Won?": { "main": [[{ "node": "Prepare Query Embedding Request", "type": "main", "index": 0 }], [{ "node": "Duplicate Stop", "type": "main", "index": 0 }]] },
-    "Prepare Query Embedding Request": { "main": [[{ "node": "Query Embedding", "type": "main", "index": 0 }]] },
+    "Prepare Query Embedding Request": { "main": [[{ "node": "Query Embedding", "type": "main", "index": 0 }], [{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
     "Query Embedding": { "main": [[{ "node": "Prepare Retrieval Query", "type": "main", "index": 0 }], [{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
     "Prepare Retrieval Query": { "main": [[{ "node": "PGVector Retrieval", "type": "main", "index": 0 }], [{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
     "PGVector Retrieval": { "main": [[{ "node": "Filter Evidence", "type": "main", "index": 0 }], [{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
     "Filter Evidence": { "main": [[{ "node": "Evidence Available?", "type": "main", "index": 0 }]] },
     "Evidence Available?": { "main": [[{ "node": "Build Prompt", "type": "main", "index": 0 }], [{ "node": "Build Abstention Response", "type": "main", "index": 0 }]] },
     "Build Prompt": { "main": [[{ "node": "Prepare Chat Completion Request", "type": "main", "index": 0 }]] },
-    "Prepare Chat Completion Request": { "main": [[{ "node": "Chat Completion", "type": "main", "index": 0 }]] },
+    "Prepare Chat Completion Request": { "main": [[{ "node": "Chat Completion", "type": "main", "index": 0 }], [{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
     "Chat Completion": { "main": [[{ "node": "Validate Citation & Attach Sources", "type": "main", "index": 0 }], [{ "node": "Build Service-Unavailable Response", "type": "main", "index": 0 }]] },
     "Validate Citation & Attach Sources": { "main": [[{ "node": "Prepare Telegram Delivery", "type": "main", "index": 0 }]] },
     "Build Abstention Response": { "main": [[{ "node": "Prepare Telegram Delivery", "type": "main", "index": 0 }]] },
@@ -463,7 +465,7 @@
   "staticData": null,
   "pinData": {},
   "active": false,
-  "meta": { "templateCredsSetupCompleted": false, "versionId": "m6-gemma-e2b-clean-v1" },
+  "meta": { "templateCredsSetupCompleted": false, "versionId": "m6-gemma-e2b-bounded-v2" },
   "tags": [],
-  "versionId": "m6-gemma-e2b-clean-v1"
+  "versionId": "m6-gemma-e2b-bounded-v2"
 }
