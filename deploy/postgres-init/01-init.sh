@@ -105,6 +105,8 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<'E
 CREATE TABLE IF NOT EXISTS rag.rag_settings (
     id                          BIGINT PRIMARY KEY DEFAULT 1,
     config_revision             TEXT NOT NULL,
+    chat_base_url               TEXT,
+    chat_api_path               TEXT DEFAULT '/chat/completions',
     chat_model                  TEXT,
     embedding_model             TEXT,
     embedding_profile_id        TEXT,
