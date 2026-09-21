@@ -5,6 +5,8 @@
 -- =============================================================================
 
 ALTER TABLE rag.rag_settings
+    ADD COLUMN IF NOT EXISTS chat_base_url TEXT,
+    ADD COLUMN IF NOT EXISTS chat_api_path TEXT DEFAULT '/chat/completions',
     ADD COLUMN IF NOT EXISTS ai_timeout_max INTEGER,
     ADD COLUMN IF NOT EXISTS ingest_timeout_max INTEGER,
     ADD COLUMN IF NOT EXISTS telegram_allowed_chat_id TEXT;
