@@ -1,5 +1,6 @@
 {
   "name": "01 — Corpus Ingestion",
+  "id": "5E9eQbknShf6iskV",
   "nodes": [
     {
       "parameters": {},
@@ -90,8 +91,7 @@
       "parameters": {
         "method": "POST",
       "url": "http://host.docker.internal:11434/v1/embeddings",
-      "authentication": "predefinedCredentialType",
-      "nodeCredentialType": "openAiApi",
+      "authentication": "none",
       "sendBody": true,
       "contentType": "raw",
       "body": "={{ $json.request_body }}",
@@ -115,13 +115,7 @@
       "typeVersion": 4.2,
       "position": [600, 0],
       "executeOnce": true,
-      "onError": "continueErrorOutput",
-      "credentials": {
-        "openAiApi": {
-          "id": "MJy2M7fkfaZLUUKY",
-          "name": "ai-provider"
-        }
-      }
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -272,6 +266,19 @@
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [1480, 380]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE rag.rag_settings\nSET config_revision = 'cloud-chat-local-embedding-2026-09-21-v2',\n    chat_base_url = 'https://api.deepseek.com',\n    chat_api_path = '/chat/completions',\n    chat_model = 'deepseek-flash',\n    updated_at = now()\nWHERE id = 1;",
+        "options": {}
+      },
+      "id": "m7-temp-configure-cloud-chat",
+      "name": "TEMP — Configure Cloud Chat Binding",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-500, 420],
+      "credentials": { "postgres": { "id": "BRjgs0DWm9bmWw4I", "name": "postgres-rag-ingest" } }
     }
   ],
   "connections": {
