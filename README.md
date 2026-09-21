@@ -70,10 +70,10 @@ See `deploy/WORKFLOW-IMPORT-GUIDE.md` — three options (CLI, API, UI).
 1. Open n8n UI at `http://127.0.0.1:5678`
 2. Import `workflows/01-corpus-ingestion.json`
 3. Import `workflows/02-telegram-grounded-qa.json`
-4. Configure credential `ai-provider` (OpenAI-compatible base URL + API key)
+4. Configure credential `ai-provider` with the approved cloud chat API key; the non-secret OpenAI-compatible chat endpoint and model binding are stored in `rag.rag_settings`, while EmbeddingGemma remains local
 5. Configure Telegram bot credential `telegram-demo-bot` (BotFather token) for workflow 02
-6. Populate `rag.rag_settings`, including the allowed Telegram chat ID; run the alignment migration for an existing database volume
-7. Activate only after workflow credentials, runtime settings, and an active corpus are ready. See `deploy/WORKFLOW-IMPORT-GUIDE.md`.
+6. Populate `rag.rag_settings`, including `chat_base_url`, `chat_api_path`, the cloud `chat_model`, allowed Telegram chat ID, and existing embedding profile values; run the alignment migration for an existing database volume
+7. Activate only after workflow credentials, runtime settings, and an active corpus are ready. For the cloud-chat/local-embedding profile, follow `deploy/CLOUD-CHAT-SETUP-GUIDE.md` and `deploy/WORKFLOW-IMPORT-GUIDE.md`.
 
 ### 5. Ingest corpus
 
