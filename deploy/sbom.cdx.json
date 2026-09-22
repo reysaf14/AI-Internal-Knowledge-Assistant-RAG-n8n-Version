@@ -1,0 +1,42 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:5e6dcb9b-1e7b-4dc5-a9ae-8d649a2a4c43",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-09-22T00:00:00Z",
+    "component": {
+      "type": "application",
+      "name": "ai-internal-knowledge-assistant-rag-n8n",
+      "version": "m7-security-hardening-2026-09-22"
+    },
+    "properties": [
+      { "name": "target-platform", "value": "linux/amd64" },
+      { "name": "digest-source", "value": "docker image inspect on running local images" }
+    ]
+  },
+  "components": [
+    {
+      "type": "container",
+      "name": "n8n",
+      "group": "n8nio",
+      "version": "1.123.81",
+      "purl": "pkg:docker/n8nio/n8n@1.123.81",
+      "hashes": [
+        { "alg": "SHA-256", "content": "0d7b776e0867c415dcb382d24d371a3b0aa402fcba9a9a866f42474abdabf7da" }
+      ],
+      "properties": [ { "name": "platform", "value": "linux/amd64" } ]
+    },
+    {
+      "type": "container",
+      "name": "pgvector",
+      "group": "pgvector",
+      "version": "pg16",
+      "purl": "pkg:docker/pgvector/pgvector@pg16",
+      "hashes": [
+        { "alg": "SHA-256", "content": "ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b" }
+      ],
+      "properties": [ { "name": "platform", "value": "linux/amd64" } ]
+    }
+  ]
+}

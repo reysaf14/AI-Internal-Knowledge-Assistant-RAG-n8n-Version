@@ -35,6 +35,9 @@ BEGIN
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'rag_runtime') THEN
         CREATE ROLE rag_runtime LOGIN;
     END IF;
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'rag_owner') THEN
+        CREATE ROLE rag_owner NOLOGIN;
+    END IF;
 END
 \$\$;
 
@@ -57,7 +60,6 @@ GRANT CONNECT ON DATABASE "$POSTGRES_DB" TO n8n_app;
 GRANT CONNECT ON DATABASE "$POSTGRES_DB" TO rag_ingest;
 GRANT CONNECT ON DATABASE "$POSTGRES_DB" TO rag_runtime;
 GRANT CREATE ON DATABASE "$POSTGRES_DB" TO n8n_app;
-GRANT CREATE ON DATABASE "$POSTGRES_DB" TO rag_ingest;
 EOSQL
 
 echo "[db-init] Database-level grants configured."
@@ -67,7 +69,7 @@ echo "[db-init] Database-level grants configured."
 # -----------------------------------------------------------------------------
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<'EOSQL'
 CREATE SCHEMA IF NOT EXISTS n8n AUTHORIZATION n8n_app;
-CREATE SCHEMA IF NOT EXISTS rag AUTHORIZATION rag_ingest;
+CREATE SCHEMA IF NOT EXISTS rag AUTHORIZATION rag_owner;
 EOSQL
 
 echo "[db-init] Schemas created."
@@ -81,15 +83,11 @@ GRANT ALL ON SCHEMA n8n TO n8n_app;
 ALTER DEFAULT PRIVILEGES IN SCHEMA n8n GRANT ALL ON TABLES TO n8n_app;
 ALTER DEFAULT PRIVILEGES IN SCHEMA n8n GRANT ALL ON SEQUENCES TO n8n_app;
 
--- rag schema: ingest has full control; runtime read-only + limited write
-GRANT USAGE, CREATE ON SCHEMA rag TO rag_ingest;
+-- rag schema: owner-only DDL; application roles receive scoped grants in 03-rag-security-hardening.sql
+GRANT USAGE ON SCHEMA rag TO rag_ingest;
 GRANT USAGE ON SCHEMA rag TO rag_runtime;
--- Runtime SELECT on CURRENT tables (created later in this script — applies to existing at this point)
--- and DEFAULT privileges for FUTURE tables (must exist so runtime can read new tables)
-ALTER DEFAULT PRIVILEGES IN SCHEMA rag GRANT SELECT ON TABLES TO rag_runtime;
-ALTER DEFAULT PRIVILEGES IN SCHEMA rag GRANT SELECT ON SEQUENCES TO rag_runtime;
-ALTER DEFAULT PRIVILEGES IN SCHEMA rag GRANT ALL ON TABLES TO rag_ingest;
-ALTER DEFAULT PRIVILEGES IN SCHEMA rag GRANT ALL ON SEQUENCES TO rag_ingest;
+-- Do not grant broad current/future table privileges here. The hardening migration
+-- transfers ownership to rag_owner and grants only the workflow operations.
 
 -- n8n_app: no access to rag schema (strict separation)
 REVOKE ALL ON SCHEMA rag FROM n8n_app;
@@ -209,21 +207,8 @@ EOSQL
 # 8. RAG_RUNTIME SPECIFIC WRITE GRANTS (after tables exist)
 # -----------------------------------------------------------------------------
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<'EOSQL'
--- Runtime SELECT on all CURRENT tables (idempotent re-run safety)
-GRANT SELECT ON ALL TABLES IN SCHEMA rag TO rag_runtime;
-GRANT SELECT ON ALL SEQUENCES IN SCHEMA rag TO rag_runtime;
-
--- Ingest write on all CURRENT tables (idempotent re-run safety)
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA rag TO rag_ingest;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA rag TO rag_ingest;
-
--- Runtime-specific write grants on operational tables only
-GRANT INSERT, UPDATE (status, processing_started_at, delivery_attempted_at, delivery_succeeded_at, error_category, config_revision, corpus_version)
-    ON rag.telegram_updates TO rag_runtime;
-GRANT USAGE, SELECT ON SEQUENCE rag.telegram_updates_id_seq TO rag_runtime;
-
-GRANT INSERT ON rag.safe_events TO rag_runtime;
-GRANT USAGE, SELECT ON SEQUENCE rag.safe_events_id_seq TO rag_runtime;
+-- Scoped grants are applied by 03-rag-security-hardening.sql after every table
+-- exists. Keeping them out of this bootstrap prevents accidental privilege drift.
 EOSQL
 
 echo "[db-init] Database initialization complete."

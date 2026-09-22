@@ -18,4 +18,6 @@ CREATE INDEX IF NOT EXISTS idx_documents_profile
     ON rag.documents (corpus_version, embedding_profile_id);
 
 GRANT SELECT ON rag.rag_settings, rag.documents TO rag_runtime;
-GRANT ALL PRIVILEGES ON rag.rag_settings, rag.documents TO rag_ingest;
+-- Do not grant broad ingest privileges here. Run 03-rag-security-hardening.sql
+-- after this alignment migration so ownership and operation-level grants remain
+-- the single security boundary for existing volumes.

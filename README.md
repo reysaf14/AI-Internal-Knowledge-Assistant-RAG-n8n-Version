@@ -14,9 +14,9 @@ Telegram → n8n Webhook → [Embedding] → [pgvector Similarity]
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| Orchestration | n8n (self-hosted) | latest stable |
+| Orchestration | n8n (self-hosted) | exact image reference from `N8N_IMAGE` |
 | Vector DB | pgvector (PostgreSQL) | latest |
-| AI Provider | OpenAI-compatible (any provider) | configurable |
+| AI Provider | OpenAI-compatible DeepSeek route (current candidate) | fixed adapter; provider changes require review |
 | Channel | Telegram Bot API | — |
 
 See [architecture.md](.ai/knowledge/architecture.md) for full spec (v1.2, 8 milestones, acceptance matrix).
@@ -70,9 +70,9 @@ See `deploy/WORKFLOW-IMPORT-GUIDE.md` — three options (CLI, API, UI).
 1. Open n8n UI at `http://127.0.0.1:5678`
 2. Import `workflows/01-corpus-ingestion.json`
 3. Import `workflows/02-telegram-grounded-qa.json`
-4. Configure credential `ai-provider` with the approved cloud chat API key; the non-secret OpenAI-compatible chat endpoint and model binding are stored in `rag.rag_settings`, while EmbeddingGemma remains local
+4. Configure credential `DeepSeek account` with the approved cloud chat API key; the current credentialed chat route is fixed to `https://api.deepseek.com/chat/completions`, while EmbeddingGemma remains local
 5. Configure Telegram bot credential `telegram-demo-bot` (BotFather token) for workflow 02
-6. Populate `rag.rag_settings`, including `chat_base_url`, `chat_api_path`, the cloud `chat_model`, allowed Telegram chat ID, and existing embedding profile values; run the alignment migration for an existing database volume
+6. Populate `rag.rag_settings`, including the current DeepSeek metadata (`chat_base_url`, `chat_api_path`, `chat_model`), allowed Telegram chat ID, and existing embedding profile values; for an existing database volume run `deploy/apply-existing-volume-migrations.ps1` (PowerShell) or `deploy/apply-existing-volume-migrations.sh` (Linux), which applies both migrations and verifies the hardening marker
 7. Activate only after workflow credentials, runtime settings, and an active corpus are ready. For the cloud-chat/local-embedding profile, follow `deploy/CLOUD-CHAT-SETUP-GUIDE.md` and `deploy/WORKFLOW-IMPORT-GUIDE.md`.
 
 ### 5. Ingest corpus

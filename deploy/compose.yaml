@@ -10,7 +10,7 @@ services:
   # PostgreSQL + pgvector
   # ---------------------------------------------------------------------------
   postgres:
-    image: pgvector/pgvector:pg16
+    image: ${PGVECTOR_IMAGE:?PGVECTOR_IMAGE required}
     container_name: rag-postgres-local
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-automation}
@@ -27,7 +27,9 @@ services:
     ports:
       - "127.0.0.1:5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cluster_admin} -d ${POSTGRES_DB:-automation}"]
+      # The marker is written by 03-rag-security-hardening.sql. This makes an
+      # existing volume fail closed until both migrations are applied.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cluster_admin} -d ${POSTGRES_DB:-automation} && psql -X -qAt -U ${POSTGRES_USER:-cluster_admin} -d ${POSTGRES_DB:-automation} -c \"SELECT 1 FROM rag.security_migrations WHERE migration_id = 'rag-security-hardening-v1' AND applied_revision = '4' LIMIT 1\" | grep -q '^1$'"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -40,7 +42,7 @@ services:
   # n8n orchestration
   # ---------------------------------------------------------------------------
   n8n:
-    image: n8nio/n8n:1.123.81
+    image: ${N8N_IMAGE:?N8N_IMAGE required}
     container_name: rag-n8n-local
     depends_on:
       postgres:
@@ -94,7 +96,12 @@ services:
     restart: unless-stopped
     cap_drop:
       - ALL
-    read_only: false
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /home/node/.cache:rw,noexec,nosuid,size=256m,uid=1000,gid=1000,mode=700
 
 # =============================================================================
 # Networks

@@ -67,11 +67,11 @@ Variabel di bagian ini tetap harus di-audit sebagai consumer configuration, teta
 
 ## 3. Kontrak AI Provider
 
-Konfigurasi AI tidak dimasukkan sebagai sekumpulan variabel vendor-spesifik di `.env.example`. Adapter awal memakai HTTP OpenAI-compatible untuk operasi chat dan embeddings; binding aktual disimpan di credential store dan `rag_settings` agar deployment dapat memakai endpoint private/self-hosted atau hosted yang telah disetujui tanpa mengubah alur RAG.
+Konfigurasi AI tidak dimasukkan sebagai sekumpulan variabel vendor-spesifik di `.env.example`. Kontrak tetap OpenAI-compatible, tetapi setiap deployment wajib memasang adapter/credential dengan origin outbound yang disetujui secara eksplisit. `rag_settings` menyimpan metadata binding dan model; credentialed request tidak boleh membangun tujuan arbitrary dari nilai database.
 
 | Binding | Required / condition | Owner / source | Secret? | Consumer / validation |
 |---|---|---|---|---|
-| Provider Base URL | Required sebelum ingest/integration/E2E | Human / endpoint yang dipilih | Internal; dapat sensitif | n8n credential; exact HTTPS origin atau private endpoint yang disetujui, health dan contract test harus lulus |
+| Chat provider Base URL + API path | Required sebelum Q&A E2E | Human / endpoint yang dipilih; Engineer adapter | Non-secret binding; origin dapat sensitif | `rag.rag_settings.chat_base_url`, `chat_api_path`; metadata harus sama dengan origin adapter yang di-allowlist. Current candidate: `https://api.deepseek.com` + `/chat/completions`. Embedding binding tetap local tester pada konfigurasi saat ini |
 | Provider authentication | Sesuai provider; tetap explicit walau endpoint tidak memerlukan token | Human / approved secret source | Yes bila berupa key/token | n8n credential store; tidak ada fallback ke workflow JSON, environment umum, atau URL berisi secret |
 | Chat model identity | Required sebelum Q&A E2E | Human + Engineer / provider model inventory | No; dapat Internal | `rag_settings`; exact ID/version/digest bila tersedia, output contract dan parameter generation tervalidasi |
 | Embedding profile | Required sebelum DB init/ingest | Human + Engineer / provider model inventory | No; dapat Internal | `rag_settings`; provider + model identity + normalization + dimension; wajib identik untuk indexing dan querying |
@@ -84,12 +84,12 @@ Key atau konfigurasi jaringan privat bukan project environment variables. Materi
 | Safe reference | Consumer | Owner / provisioning | Boundary dan validation |
 |---|---|---|---|
 | `telegram-demo-bot` | Telegram Trigger dan Telegram send node pada workflow Q&A | Human memasukkan bot token di n8n credential store | Bot khusus demo; token Restricted; connection test tanpa menampilkan token; revoke setelah demo |
-| `ai-provider` | Adapter chat dan embeddings OpenAI-compatible | Human memasukkan Base URL dan autentikasi, bila diperlukan, di n8n credential store | Endpoint harus exact target yang disetujui; health, model identity, chat, embeddings, output shape, dan dimension diverifikasi tanpa menyalin prompt. Hosted profile memerlukan approval data-processing Human terlebih dahulu |
+| `DeepSeek account` (current candidate; generic adapter slot in the architecture) | Adapter chat OpenAI-compatible; embedding tetap local tester | Human memasukkan API key/authentication di n8n credential store; current request route is fixed by the reviewed adapter | Endpoint harus exact target yang disetujui; health, model identity, chat output shape, dan timeout diverifikasi tanpa menyalin prompt. Hosted profile memerlukan approval data-processing Human terlebih dahulu |
 | `postgres-rag-ingest` | Workflow ingest | Human/DevOps memasukkan role `rag_ingest` di n8n credential store | Hanya schema RAG dan grant write/activate yang diperlukan; bukan admin DB |
 | `postgres-rag-runtime` | Workflow Q&A | Human/DevOps memasukkan role `rag_runtime` di n8n credential store | Read corpus/settings + write dedup/safe event saja; tidak dapat mengubah corpus active |
 | n8n owner account | Editor/admin UI | Human membuat owner pertama melalui UI privat | Password/MFA material Restricted; tidak masuk `.env.example` atau export |
 | Telegram allowed chat/group ID | Telegram Trigger runtime field | Human mengisi setelah import | Minimal Confidential; tidak ada pada export publik; workflow tidak boleh dipublish ketika kosong/placeholder |
-| RAG runtime settings | `rag_settings` dibaca kedua workflow | Engineer membuat schema; Human/Engineer mengisi nilai non-secret yang telah dikalibrasi | `chat_model`, `embedding_model`, `embedding_profile_id`, retrieval limit, minimum similarity, context/output bounds, config revision; required kosong → fail-closed |
+| RAG runtime settings | `rag_settings` dibaca kedua workflow | Engineer membuat schema; Human/Engineer mengisi nilai non-secret yang telah dikalibrasi | `chat_base_url`, `chat_api_path`, `chat_model`, `embedding_model`, `embedding_profile_id`, retrieval limit, minimum similarity, context/output bounds, config revision; required kosong → fail-closed |
 
 Nama vendor, lokasi provider, dan nama model tidak di-hard-code di repository. Export publik memakai binding generik/unbound, sedangkan evidence mencatat provider profile serta model ID/version/digest aktual secara tersanitasi agar hasil dapat direproduksi.
 

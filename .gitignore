@@ -51,6 +51,9 @@ secrets/
 # Test / evidence artifacts (raw/sensitive)
 .ai/reports/qa/raw/
 .ai/reports/build/raw/
+/evaluation/run_*.jsonl
+/evaluation/run_*_config.json
+/evaluation/run_*_summary.md
 *.pcap
 *.har
 screenshots/

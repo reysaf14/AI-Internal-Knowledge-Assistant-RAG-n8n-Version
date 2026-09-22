@@ -71,7 +71,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const s = $input.first().json;\nconst required = ['config_revision', 'chat_base_url', 'chat_api_path', 'chat_model', 'embedding_model', 'embedding_profile_id', 'embedding_dimension', 'retrieval_limit', 'minimum_similarity', 'context_bound', 'output_bound', 'ai_timeout_max', 'active_corpus_version'];\nconst missing = required.filter((key) => s[key] === null || s[key] === undefined || s[key] === '' || s[key] === 'UNINITIALIZED');\nconst baseText = String(s.chat_base_url || '').trim();\nconst pathText = String(s.chat_api_path || '').trim();\nconst baseValid = /^(https?):\\/\\/[^\\s/$.?#].[^\\s]*$/i.test(baseText);\nconst pathsValid = /^\\/[^\\s]*$/.test(pathText);\nconst deadline = Number(s.business_deadline_ms);\nconst reserve = Number(s.delivery_reserve_ms);\nconst timeout = Number(s.ai_timeout_max);\nconst budgetValid = Number.isInteger(deadline) && deadline > 0 && Number.isInteger(reserve) && reserve > 0 && deadline > reserve && Number.isInteger(timeout) && timeout > 0 && timeout <= deadline - reserve;\nconst valid = missing.length === 0 && baseValid && pathsValid && Number(s.embedding_dimension) > 0 && Number(s.retrieval_limit) > 0 && Number(s.context_bound) > 0 && Number(s.output_bound) > 0 && budgetValid;\nreturn [{ json: { ...s, runtime_status: valid ? 'ready' : 'unavailable', runtime_error: valid ? null : (missing.length ? 'runtime_settings_incomplete' : (!baseValid || !pathsValid ? 'chat_endpoint_invalid' : 'runtime_budget_invalid')) } }];"
+        "jsCode": "const s = $input.first().json;\nconst required = ['config_revision', 'chat_base_url', 'chat_api_path', 'chat_model', 'embedding_model', 'embedding_profile_id', 'embedding_dimension', 'retrieval_limit', 'minimum_similarity', 'context_bound', 'output_bound', 'ai_timeout_max', 'active_corpus_version'];\nconst missing = required.filter((key) => s[key] === null || s[key] === undefined || s[key] === '' || s[key] === 'UNINITIALIZED');\nconst baseText = String(s.chat_base_url || '').trim();\nconst pathText = String(s.chat_api_path || '').trim();\nconst baseValid = baseText === 'https://api.deepseek.com';\nconst pathsValid = pathText === '/chat/completions';\nconst deadline = Number(s.business_deadline_ms);\nconst reserve = Number(s.delivery_reserve_ms);\nconst timeout = Number(s.ai_timeout_max);\nconst budgetValid = Number.isInteger(deadline) && deadline > 0 && Number.isInteger(reserve) && reserve > 0 && deadline > reserve && Number.isInteger(timeout) && timeout > 0 && timeout <= deadline - reserve;\nconst valid = missing.length === 0 && baseValid && pathsValid && Number(s.embedding_dimension) > 0 && Number(s.retrieval_limit) > 0 && Number(s.context_bound) > 0 && Number(s.output_bound) > 0 && budgetValid;\nreturn [{ json: { ...s, runtime_status: valid ? 'ready' : 'unavailable', runtime_error: valid ? null : (missing.length ? 'runtime_settings_incomplete' : (!baseValid || !pathsValid ? 'chat_endpoint_invalid' : 'runtime_budget_invalid')) } }];"
       },
       "id": "m2-validate-settings",
       "name": "Validate Runtime Settings",
@@ -172,7 +172,7 @@
             }
           ]
         },
-        "options": { "timeout": "={{ Number($json.ai_request_timeout_ms || $json.ai_timeout_max) }}" }
+        "options": { "followRedirect": false, "followAllRedirects": false, "timeout": "={{ Number($json.ai_request_timeout_ms || $json.ai_timeout_max) }}" }
       },
       "id": "m2-query-embedding",
       "name": "Query Embedding",
@@ -256,7 +256,7 @@
     {
       "parameters": {
         "method": "POST",
-      "url": "={{ $json.chat_base_url.replace(/\\/+$/, '') + $json.chat_api_path }}",
+      "url": "https://api.deepseek.com/chat/completions",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "deepSeekApi",
         "sendBody": true,
@@ -273,7 +273,7 @@
             }
           ]
         },
-        "options": { "timeout": "={{ Number($json.ai_request_timeout_ms || $json.ai_timeout_max) }}" }
+        "options": { "followRedirect": false, "followAllRedirects": false, "timeout": "={{ Number($json.ai_request_timeout_ms || $json.ai_timeout_max) }}" }
       },
       "id": "m2-chat-completion",
       "name": "Chat Completion",

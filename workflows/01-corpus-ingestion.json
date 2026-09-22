@@ -142,7 +142,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO rag.corpus_versions (corpus_version, status, document_count, chunk_count, embedding_profile_id) VALUES ($1, 'staging', $2, $3, $4) ON CONFLICT (corpus_version) DO UPDATE SET document_count = EXCLUDED.document_count, chunk_count = EXCLUDED.chunk_count, embedding_profile_id = EXCLUDED.embedding_profile_id, status = CASE WHEN rag.corpus_versions.status = 'failed' THEN 'staging' ELSE rag.corpus_versions.status END, failed_at = CASE WHEN rag.corpus_versions.status = 'failed' THEN NULL ELSE rag.corpus_versions.failed_at END, failure_reason = CASE WHEN rag.corpus_versions.status = 'failed' THEN NULL ELSE rag.corpus_versions.failure_reason END WHERE rag.corpus_versions.embedding_profile_id = EXCLUDED.embedding_profile_id RETURNING corpus_version, status, document_count, chunk_count, embedding_profile_id",
+        "query": "SELECT * FROM rag.create_corpus_candidate($1, $2, $3, $4)",
         "options": { "queryReplacement": "={{ [$json.corpus_version, $json.document_count, $json.chunk_count, $json.embedding_profile_id] }}" }
       },
       "id": "m1-create-version",
@@ -168,7 +168,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH inserted AS (INSERT INTO rag.documents (corpus_version, source_name, source_hash, chunk_index, content, embedding, embedding_profile_id, metadata) SELECT $1, c.source_name, c.source_hash, c.chunk_index, c.content, c.embedding::text::vector, c.embedding_profile_id, jsonb_build_object('source_name', c.source_name, 'source_hash', c.source_hash, 'chunk_index', c.chunk_index, 'corpus_version', $1, 'embedding_profile_id', c.embedding_profile_id) FROM jsonb_to_recordset($2::jsonb) AS c(source_name text, source_hash text, chunk_index integer, content text, embedding jsonb, embedding_profile_id text) ON CONFLICT (corpus_version, source_hash, chunk_index) DO NOTHING RETURNING id) SELECT $1::text AS corpus_version, $3::text AS embedding_profile_id, (SELECT count(*)::integer FROM inserted) AS inserted_chunk_count",
+        "query": "SELECT * FROM rag.stage_chunks($1, $2::jsonb, $3)",
         "options": { "queryReplacement": "={{ [$json.corpus_version, JSON.stringify($json.chunks), $json.embedding_profile_id] }}" }
       },
       "id": "m1-insert-chunks",
@@ -183,7 +183,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT cv.corpus_version, cv.status, cv.document_count, cv.chunk_count, cv.embedding_profile_id, count(d.id)::integer AS persisted_chunk_count, count(DISTINCT d.source_name)::integer AS persisted_document_count FROM rag.corpus_versions cv LEFT JOIN rag.documents d ON d.corpus_version = cv.corpus_version WHERE cv.corpus_version = $1 AND cv.embedding_profile_id = $2 GROUP BY cv.corpus_version, cv.status, cv.document_count, cv.chunk_count, cv.embedding_profile_id",
+        "query": "SELECT * FROM rag.get_candidate_evidence($1, $2)",
         "options": { "queryReplacement": "={{ [$json.corpus_version, $json.embedding_profile_id] }}" }
       },
       "id": "m1-load-candidate-evidence",
@@ -210,7 +210,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "BEGIN; UPDATE rag.corpus_versions SET status = 'superseded' WHERE status = 'active' AND corpus_version <> $1 AND EXISTS (SELECT 1 FROM rag.corpus_versions candidate WHERE candidate.corpus_version = $1 AND candidate.status IN ('staging', 'active') AND candidate.embedding_profile_id = $2 AND candidate.chunk_count = (SELECT count(*) FROM rag.documents d WHERE d.corpus_version = candidate.corpus_version) AND candidate.document_count = (SELECT count(DISTINCT d.source_name) FROM rag.documents d WHERE d.corpus_version = candidate.corpus_version)); UPDATE rag.corpus_versions candidate SET status = 'active', activated_at = COALESCE(candidate.activated_at, now()), failed_at = NULL, failure_reason = NULL WHERE candidate.corpus_version = $1 AND candidate.status IN ('staging', 'active') AND candidate.embedding_profile_id = $2 AND candidate.chunk_count = (SELECT count(*) FROM rag.documents d WHERE d.corpus_version = candidate.corpus_version) AND candidate.document_count = (SELECT count(DISTINCT d.source_name) FROM rag.documents d WHERE d.corpus_version = candidate.corpus_version); UPDATE rag.rag_settings SET active_corpus_version = $1, updated_at = now() WHERE id = 1 AND embedding_profile_id = $2 AND EXISTS (SELECT 1 FROM rag.corpus_versions candidate WHERE candidate.corpus_version = $1 AND candidate.status = 'active' AND candidate.embedding_profile_id = $2 AND candidate.chunk_count = (SELECT count(*) FROM rag.documents d WHERE d.corpus_version = candidate.corpus_version) AND candidate.document_count = (SELECT count(DISTINCT d.source_name) FROM rag.documents d WHERE d.corpus_version = candidate.corpus_version)); COMMIT;",
+        "query": "SELECT rag.activate_corpus($1, $2)",
         "options": { "queryReplacement": "={{ [$json.corpus_version, $json.embedding_profile_id] }}" }
       },
       "id": "m1-activate-corpus",
@@ -249,7 +249,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE rag.corpus_versions SET status = 'failed', failed_at = now(), failure_reason = $2 WHERE corpus_version = $1 AND status = 'staging'",
+        "query": "SELECT rag.mark_candidate_failed($1, $2)",
         "options": { "queryReplacement": "={{ [$json.corpus_version, $json.error_category] }}" }
       },
       "id": "m1-mark-failed",
@@ -266,19 +266,6 @@
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [1480, 380]
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "UPDATE rag.rag_settings\nSET config_revision = 'cloud-chat-local-embedding-2026-09-21-v2',\n    chat_base_url = 'https://api.deepseek.com',\n    chat_api_path = '/chat/completions',\n    chat_model = 'deepseek-flash',\n    updated_at = now()\nWHERE id = 1;",
-        "options": {}
-      },
-      "id": "m7-temp-configure-cloud-chat",
-      "name": "TEMP — Configure Cloud Chat Binding",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [-500, 420],
-      "credentials": { "postgres": { "id": "BRjgs0DWm9bmWw4I", "name": "postgres-rag-ingest" } }
     }
   ],
   "connections": {
