@@ -13,6 +13,8 @@ Workflow files in `workflows/` are DRAFT exports (current workflow 02 version `m
 ## Prerequisites
 
 - n8n container running and healthy (`http://127.0.0.1:5678` accessible)
+- Egress gateway running and healthy. It is started by `deploy/compose.yaml` and
+  is the only application component attached to the external Docker network.
 - n8n owner account created via UI (first-run setup)
 - DeepSeek credential configured in n8n credential store (`DeepSeek account`) with the approved API key
 - Telegram bot credential configured in n8n (`telegram-demo-bot`) for workflow 02
@@ -21,7 +23,7 @@ Workflow files in `workflows/` are DRAFT exports (current workflow 02 version `m
 
 ## Import Mechanism
 
-### Option A: n8n CLI (recommended for local-isolated)
+### Option A: n8n CLI (first import into a clean instance only)
 
 ```bash
 # Import workflow 01 — Corpus Ingestion
@@ -34,6 +36,14 @@ docker exec rag-n8n-local n8n import:workflow \
 ```
 
 The `/import-workflows` path is mounted read-only from `workflows/` in `deploy/compose.yaml`.
+
+`import:workflow` creates a new workflow record; it is **not** an in-place
+update tool for a running, previously bound workflow. Do not run it repeatedly
+against this project's existing instance, or duplicate inactive workflows will
+be created. For the current local instance, the two known workflow IDs are
+already synchronized to the gateway route. Use the n8n UI to deliberately
+create/rebind a replacement only when a reviewed workflow change requires it,
+then retire the old record through n8n before activation.
 
 ### Existing-volume schema alignment
 
@@ -85,7 +95,7 @@ After import, each workflow needs credential rebinding in n8n UI:
 | Node | Credential Required | Type |
 |------|-------------------|------|
 | Load RAG Settings, staging/failure PostgreSQL nodes | `postgres-rag-ingest` | Connection to `rag` schema (role: `rag_ingest`) |
-| Embedding Request | None | Existing local EmbeddingGemma route; no cloud credential is sent |
+| Embedding Request | None | `http://egress-gateway:8080/ollama/v1/embeddings`; no cloud credential is sent |
 
 For the project Compose n8n container, use PostgreSQL host `postgres`. If n8n runs as a separate Windows/host instance, PostgreSQL is published only on loopback by `compose.yaml`; use host `127.0.0.1` and port `5432` instead. Do not use `localhost`/`127.0.0.1` from a container that is not the host, and do not expose PostgreSQL on a public interface.
 
@@ -93,15 +103,15 @@ For the project Compose n8n container, use PostgreSQL host `postgres`. If n8n ru
 
 | Node | Credential Required | Type |
 |------|-------------------|------|
-| Telegram Trigger and Telegram Send | `telegram-demo-bot` | Bot token from BotFather |
-| Query Embedding | None | Existing local EmbeddingGemma route; no cloud embedding call |
-| Chat Completion | `DeepSeek account` | DeepSeek API key; current credentialed route is fixed to `https://api.deepseek.com/chat/completions` |
+| Telegram Trigger and Telegram Send | `telegram-demo-bot` | Bot token from BotFather; credential Base URL must be `http://egress-gateway:8080/telegram` |
+| Query Embedding | None | `http://egress-gateway:8080/ollama/api/embed`; no cloud embedding call |
+| Chat Completion | `DeepSeek account` | DeepSeek API key; workflow calls internal `/deepseek/chat/completions`, whose Caddy route is fixed to the reviewed HTTPS provider origin |
 | PostgreSQL nodes | `postgres-rag-runtime` | Connection to `rag` schema (role: `rag_runtime`) |
 | Telegram Send | `telegram-demo-bot` | Same bot token |
 
 ### Current DeepSeek OpenAI-compatible provider profile
 
-The exported workflow uses the OpenAI-compatible chat contract with the current approved DeepSeek route fixed in the credentialed HTTP node. `rag_settings.chat_base_url` and `chat_api_path` are consistency metadata and are validated fail-closed; they are not used to construct a credentialed destination. Embeddings intentionally remain on the local EmbeddingGemma tester, so the current corpus and vector dimension are preserved.
+The exported workflow uses the OpenAI-compatible chat contract with the current approved DeepSeek route fixed in the **egress gateway**. The HTTP node calls only `http://egress-gateway:8080/deepseek/chat/completions`; Caddy strips `/deepseek` and reverse-proxies to the fixed HTTPS provider origin. `rag_settings.chat_base_url` and `chat_api_path` remain fail-closed consistency metadata and are not used to construct a credentialed destination. Embeddings intentionally remain on the local EmbeddingGemma tester behind the `/ollama` gateway route, so the current corpus and vector dimension are preserved.
 
 The key alone cannot identify a provider's endpoint or chat model. Those two non-secret values must be entered once in `rag.rag_settings` from the chosen provider's model inventory. The embedding model/profile/dimension stays unchanged:
 
@@ -117,7 +127,7 @@ SET config_revision = 'cloud-chat-local-embedding-<date>',
 WHERE id = 1;
 ```
 
-The current workflow validates the exact HTTPS origin `https://api.deepseek.com` and sends only to `/chat/completions`. The credentialed HTTP node disables both ordinary and all-redirect following; a non-2xx/3xx response is handled as a provider failure rather than followed to another origin. A provider with a different origin or native non-compatible API needs a separate reviewed adapter/workflow and Security re-audit; editing `rag_settings` alone cannot redirect the credentialed request.
+The current workflow validates the exact HTTPS origin `https://api.deepseek.com` in metadata and sends only to the gateway's `/deepseek/chat/completions` route. The credentialed HTTP node disables both ordinary and all-redirect following; a non-2xx/3xx response is handled as a provider failure rather than followed to another origin. A provider with a different origin or native non-compatible API needs a separate reviewed gateway/adapter/workflow change and Security re-audit; editing `rag_settings` alone cannot redirect the credentialed request.
 
 Changing only `chat_model` or the chat endpoint does not require re-ingestion. Do not send retrieved confidential corpus excerpts or questions to a hosted provider until the Human data-processing approval for that provider, retention, and region is recorded.
 
@@ -138,7 +148,7 @@ Use this profile only for local runtime readiness and provider-contract testing.
 | `rag_settings.ingest_timeout_max` | `120000` ms; offline workflow 01 batch budget, separate from the online Telegram SLA |
 | Optional alternative chat/vision model | `qwen3-8b-2k:latest` |
 
-The n8n container must be able to reach Ollama through `host.docker.internal`; `127.0.0.1` inside the container is not the Windows host. This local-chat profile is retained as historical tester documentation only; the current export is fixed to DeepSeek and requires an adapter change before Ollama chat can be used. EmbeddingGemma remains on the existing local embedding route.
+The egress gateway reaches host-local Ollama through `host.docker.internal`; n8n itself must not call that host address directly. `127.0.0.1` inside either container is not the Windows host. This local-chat profile is retained as historical tester documentation only; the current export is fixed to DeepSeek and requires an adapter change before Ollama chat can be used. EmbeddingGemma remains on the existing local embedding route.
 
 Workflow 02 carries `start_ts` from the trigger. Before each AI call it computes the remaining deadline budget; an exhausted budget follows the sanitized service-unavailable branch. This bounded control is ready for QA profiling but does not itself prove the required `15/15` responses below `5,000ms`.
 

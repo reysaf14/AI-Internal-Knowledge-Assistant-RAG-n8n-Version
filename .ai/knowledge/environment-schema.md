@@ -15,6 +15,7 @@ Nilai kosong adalah aman untuk template tetapi membuat profile terkait belum run
 |---|---|---|---|---|---|---|---|
 | `N8N_IMAGE` | Exact n8n image reference; string tag/digest | Required | local-isolated, demo-vps | `N8N_IMAGE=` | DevOps / verified registry release | No | Compose `n8n.image`; reject empty, placeholder, dan floating `latest` |
 | `PGVECTOR_IMAGE` | Exact PostgreSQL+pgvector image reference; string tag/digest | Required | local-isolated, demo-vps | `PGVECTOR_IMAGE=` | DevOps / verified registry release | No | Compose `postgres.image`; reject empty, placeholder, `latest`, atau incompatibility |
+| `CADDY_EGRESS_IMAGE` | Exact Caddy egress-gateway image reference; string tag/digest | Required | local-isolated, demo-vps | `CADDY_EGRESS_IMAGE=` | DevOps / verified registry release | No | Compose `egress-gateway.image`; reject empty, placeholder, dan floating `latest`; only gateway joins external network |
 | `CADDY_IMAGE` | Exact Caddy image reference; string tag/digest | Required hanya demo-vps | demo-vps | `CADDY_IMAGE=` | DevOps / verified registry release | No | Compose `caddy.image`; reject empty, placeholder, dan `latest` |
 | `PUBLIC_HOSTNAME` | Public FQDN untuk webhook; hostname | Required hanya demo-vps/live Telegram | demo-vps | `n8n.example.invalid` | Human / DNS yang dikelola Human | No | Compose/Caddy/n8n derived vars; reject IP, scheme/path, `.invalid`, atau DNS yang tidak mengarah ke exact VPS saat live |
 | `ACME_EMAIL` | Kontak sertifikat; email | Required hanya automatic public TLS | demo-vps | `ops@example.invalid` | Human / mailbox operasional | No; nilai nyata minimal Confidential | Caddy; valid email dan bukan `.invalid` saat live |
@@ -75,7 +76,7 @@ Konfigurasi AI tidak dimasukkan sebagai sekumpulan variabel vendor-spesifik di `
 | Provider authentication | Sesuai provider; tetap explicit walau endpoint tidak memerlukan token | Human / approved secret source | Yes bila berupa key/token | n8n credential store; tidak ada fallback ke workflow JSON, environment umum, atau URL berisi secret |
 | Chat model identity | Required sebelum Q&A E2E | Human + Engineer / provider model inventory | No; dapat Internal | `rag_settings`; exact ID/version/digest bila tersedia, output contract dan parameter generation tervalidasi |
 | Embedding profile | Required sebelum DB init/ingest | Human + Engineer / provider model inventory | No; dapat Internal | `rag_settings`; provider + model identity + normalization + dimension; wajib identik untuk indexing dan querying |
-| Provider transport profile | Required untuk demo-vps | Human + DevOps / approved topology | Private key/token adalah Restricted | Hosted memakai HTTPS dan egress allowlist; private/self-hosted memakai route/firewall privat yang disetujui; tidak ada public ingress ke endpoint private |
+| Provider transport profile | Required untuk demo-vps | Human + DevOps / approved topology | Private key/token adalah Restricted | Hosted memakai HTTPS melalui route egress tetap yang di-allowlist; private/self-hosted memakai route/firewall privat yang disetujui; tidak ada public ingress ke endpoint private |
 
 Key atau konfigurasi jaringan privat bukan project environment variables. Material rahasia berada di credential/secret store OS dengan permission ketat; evidence hanya mencatat profile dan hasil validasi tersanitasi.
 

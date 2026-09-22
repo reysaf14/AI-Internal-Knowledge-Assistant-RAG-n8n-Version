@@ -1,7 +1,7 @@
 # =============================================================================
 # Asisten Pengetahuan Internal Toko Makmur Jaya — local-isolated profile
 # Architecture version: 1.2 | Compose created: 2026-09-14
-# Profile: local-isolated (no Caddy, loopback only, mock provider)
+# Profile: local-isolated (internal application network + exact-route egress gateway)
 # Usage: cd project root && bash deploy/start-local.sh
 # =============================================================================
 
@@ -46,6 +46,8 @@ services:
     container_name: rag-n8n-local
     depends_on:
       postgres:
+        condition: service_healthy
+      egress-gateway:
         condition: service_healthy
     environment:
       DB_TYPE: postgresdb
@@ -103,11 +105,52 @@ services:
       - /tmp:rw,noexec,nosuid,size=64m
       - /home/node/.cache:rw,noexec,nosuid,size=256m,uid=1000,gid=1000,mode=700
 
+  # ---------------------------------------------------------------------------
+  # Egress gateway — the only service with an external Docker network.
+  # It exposes three fixed reverse-proxy routes to the internal app network:
+  # Telegram Bot API, approved DeepSeek chat, and host-local Ollama.
+  # ---------------------------------------------------------------------------
+  egress-gateway:
+    image: ${CADDY_EGRESS_IMAGE:?CADDY_EGRESS_IMAGE required}
+    container_name: rag-egress-gateway-local
+    command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+    volumes:
+      - ../deploy/egress-gateway/Caddyfile:/etc/caddy/Caddyfile:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "caddy", "adapt", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - rag-net-local
+      - rag-egress
+    restart: unless-stopped
+    user: "1000:1000"
+    cap_drop:
+      - ALL
+    # The pinned Caddy binary carries this file capability. Keeping only this
+    # capability lets the non-root gateway execute while retaining
+    # no-new-privileges and dropping every other container capability.
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /config:rw,noexec,nosuid,size=16m,uid=1000,gid=1000,mode=700
+      - /data:rw,noexec,nosuid,size=16m,uid=1000,gid=1000,mode=700
+
 # =============================================================================
 # Networks
 # =============================================================================
 networks:
   rag-net-local:
+    driver: bridge
+    internal: true
+  rag-egress:
     driver: bridge
 
 # =============================================================================

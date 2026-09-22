@@ -1,0 +1,46 @@
+{
+	admin off
+	auto_https off
+	# Telegram places its bot token in the request path. Discard gateway logs
+	# completely so an upstream outage cannot leak that path to container logs.
+	log {
+		output discard
+	}
+}
+
+:8080 {
+	# A local liveness route; no host port is published for this service.
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	# The gateway does not accept caller-supplied upstream URLs. Each route has
+	# one reviewed, exact upstream origin. Caddy does not follow redirects;
+	# the n8n HTTP nodes also keep redirect following disabled.
+	@telegram path /telegram /telegram/*
+	handle @telegram {
+		uri strip_prefix /telegram
+		reverse_proxy https://api.telegram.org {
+			header_up Host api.telegram.org
+		}
+	}
+
+	@deepseek path /deepseek /deepseek/*
+	handle @deepseek {
+		uri strip_prefix /deepseek
+		reverse_proxy https://api.deepseek.com {
+			header_up Host api.deepseek.com
+		}
+	}
+
+	# This is intentionally the only route to the Windows-hosted local model.
+	@ollama path /ollama /ollama/*
+	handle @ollama {
+		uri strip_prefix /ollama
+		reverse_proxy http://host.docker.internal:11434 {
+			header_up Host host.docker.internal:11434
+		}
+	}
+
+	respond "egress destination denied" 403
+}

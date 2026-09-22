@@ -54,6 +54,7 @@ Services:
 |---------|------|---------|
 | n8n | 127.0.0.1:5678 (loopback only) | Workflow UI + webhook |
 | PostgreSQL + pgvector | internal (no host port) | Vector store + dedup + state |
+| Egress gateway | internal only | Fixed routes to Telegram, approved cloud chat, and host-local Ollama |
 
 ### 3. Stop stack
 
@@ -70,10 +71,10 @@ See `deploy/WORKFLOW-IMPORT-GUIDE.md` — three options (CLI, API, UI).
 1. Open n8n UI at `http://127.0.0.1:5678`
 2. Import `workflows/01-corpus-ingestion.json`
 3. Import `workflows/02-telegram-grounded-qa.json`
-4. Configure credential `DeepSeek account` with the approved cloud chat API key; the current credentialed chat route is fixed to `https://api.deepseek.com/chat/completions`, while EmbeddingGemma remains local
-5. Configure Telegram bot credential `telegram-demo-bot` (BotFather token) for workflow 02
+4. Configure credential `DeepSeek account` with the approved cloud chat API key. The workflow sends through the internal egress gateway, whose reviewed `/deepseek` route is fixed to the approved HTTPS provider origin; EmbeddingGemma remains local behind the same gateway.
+5. Configure Telegram bot credential `telegram-demo-bot` (BotFather token) for workflow 02. In the credential **Base URL** field use `http://egress-gateway:8080/telegram`; this is an internal container URL, not a public endpoint.
 6. Populate `rag.rag_settings`, including the current DeepSeek metadata (`chat_base_url`, `chat_api_path`, `chat_model`), allowed Telegram chat ID, and existing embedding profile values; for an existing database volume run `deploy/apply-existing-volume-migrations.ps1` (PowerShell) or `deploy/apply-existing-volume-migrations.sh` (Linux), which applies both migrations and verifies the hardening marker
-7. Activate only after workflow credentials, runtime settings, and an active corpus are ready. For the cloud-chat/local-embedding profile, follow `deploy/CLOUD-CHAT-SETUP-GUIDE.md` and `deploy/WORKFLOW-IMPORT-GUIDE.md`.
+7. Activate only after workflow credentials, runtime settings, an active corpus, and an approved public HTTPS `WEBHOOK_URL` are ready. `local-isolated` deliberately leaves workflow 02 inactive because Telegram cannot register a loopback HTTP webhook. For the cloud-chat/local-embedding profile, follow `deploy/CLOUD-CHAT-SETUP-GUIDE.md` and `deploy/WORKFLOW-IMPORT-GUIDE.md`.
 
 ### 5. Ingest corpus
 
@@ -140,7 +141,7 @@ All variables are defined in `.env.example` with full documentation. Key categor
 
 | Category | Variables | Provisioned by |
 |----------|-----------|---------------|
-| Container images | `N8N_IMAGE`, `PGVECTOR_IMAGE` | DevOps |
+| Container images | `N8N_IMAGE`, `PGVECTOR_IMAGE`, `CADDY_EGRESS_IMAGE` | DevOps |
 | Secrets | `N8N_ENCRYPTION_KEY`, `POSTGRES_PASSWORD`, DB passwords | Human |
 | Hostname/TLS | `PUBLIC_HOSTNAME`, `ACME_EMAIL` | DevOps |
 | Timezone | `GENERIC_TIMEZONE` | Human |

@@ -156,7 +156,7 @@
     {
       "parameters": {
         "method": "POST",
-      "url": "http://host.docker.internal:11434/api/embed",
+      "url": "http://egress-gateway:8080/ollama/api/embed",
         "authentication": "none",
         "sendBody": true,
         "contentType": "raw",
@@ -256,7 +256,7 @@
     {
       "parameters": {
         "method": "POST",
-      "url": "https://api.deepseek.com/chat/completions",
+      "url": "http://egress-gateway:8080/deepseek/chat/completions",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "deepSeekApi",
         "sendBody": true,
@@ -499,7 +499,7 @@
   "settings": { "executionOrder": "v1" },
   "staticData": null,
   "pinData": {},
-  "active": true,
+  "active": false,
   "meta": { "templateCredsSetupCompleted": false, "versionId": "m7-cloud-chat-local-embedding-v1" },
   "tags": [],
   "versionId": "m7-cloud-chat-local-embedding-v1"
