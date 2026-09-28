@@ -64,6 +64,8 @@ bash deploy/stop-local.sh
 #   docker compose -f deploy/compose.yaml --project-name rag-local --env-file .env.test down -v
 ```
 
+For the post-demo cleanup/revoke flow and a complete restore runbook, see [`deploy/LOCAL-DEMO-USER-GUIDE.md`](deploy/LOCAL-DEMO-USER-GUIDE.md). Cleanup stops the project-scoped containers and preserves volumes; it does not make the workflow exports unusable for a future demo.
+
 ### 4. Import workflows
 
 See `deploy/WORKFLOW-IMPORT-GUIDE.md` — three options (CLI, API, UI).
