@@ -84,7 +84,7 @@
       "name": "Prepare Embedding Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [490, 0],
+      "position": [500, 0],
       "onError": "continueErrorOutput"
     },
     {
@@ -113,7 +113,7 @@
       "name": "Embedding Request",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [600, 0],
+      "position": [740, 0],
       "executeOnce": true,
       "onError": "continueErrorOutput"
     },
@@ -125,7 +125,7 @@
       "name": "Pair & Validate Embeddings",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [820, 0],
+      "position": [960, 0],
       "onError": "continueErrorOutput"
     },
     {
@@ -136,7 +136,7 @@
       "name": "Prepare Ingest Batch",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1040, 0],
+      "position": [1180, 0],
       "onError": "continueErrorOutput"
     },
     {
@@ -149,7 +149,7 @@
       "name": "Staging: Create Version",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [1260, 0],
+      "position": [1400, 0],
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
       "credentials": { "postgres": { "id": "BRjgs0DWm9bmWw4I", "name": "postgres-rag-ingest" } }
@@ -162,7 +162,7 @@
       "name": "Restore Ingest Batch",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1370, 0],
+      "position": [1540, 0],
       "onError": "continueErrorOutput"
     },
     {
@@ -175,7 +175,7 @@
       "name": "Staging: Insert Chunks",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [1480, 0],
+      "position": [1680, 0],
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
       "credentials": { "postgres": { "id": "BRjgs0DWm9bmWw4I", "name": "postgres-rag-ingest" } }
@@ -190,7 +190,7 @@
       "name": "Load Candidate Evidence",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [1590, 0],
+      "position": [1820, 0],
       "executeOnce": true,
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
@@ -204,7 +204,7 @@
       "name": "Validate Candidate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1700, 0],
+      "position": [1960, 0],
       "onError": "continueErrorOutput"
     },
     {
@@ -217,7 +217,7 @@
       "name": "Activate Corpus (Atomic)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [1920, 0],
+      "position": [2200, 0],
       "onError": "continueErrorOutput",
       "credentials": { "postgres": { "id": "BRjgs0DWm9bmWw4I", "name": "postgres-rag-ingest" } }
     },
@@ -229,7 +229,7 @@
       "name": "Failure Marking",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1040, 300]
+      "position": [1180, 340]
     },
     {
       "parameters": {
@@ -244,7 +244,7 @@
       "name": "Candidate Exists?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [1260, 300]
+      "position": [1400, 340]
     },
     {
       "parameters": {
@@ -256,7 +256,7 @@
       "name": "Failure: Mark Candidate",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [1480, 220],
+      "position": [1680, 280],
       "credentials": { "postgres": { "id": "BRjgs0DWm9bmWw4I", "name": "postgres-rag-ingest" } }
     },
     {
@@ -265,7 +265,7 @@
       "name": "Failure: End",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [1480, 380]
+      "position": [1680, 460]
     }
   ],
   "connections": {
