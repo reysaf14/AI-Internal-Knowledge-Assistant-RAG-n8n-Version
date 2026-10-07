@@ -8,7 +8,7 @@
       "name": "TelegramTrigger",
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.2,
-      "position": [-1500, 0],
+      "position": [-900, 0],
       "credentials": { "telegramApi": { "id": "4EnZ1tJlkUpSzLwe", "name": "telegram-demo-bot" } }
     },
     {
@@ -19,7 +19,7 @@
       "name": "Normalize Update",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-1280, 0]
+      "position": [-700, 0]
     },
     {
       "parameters": {
@@ -31,7 +31,7 @@
       "name": "Settings Query",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2,
-      "position": [-1060, 0],
+      "position": [-500, 0],
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
       "credentials": { "postgres": { "id": "UQGPzpM8nYf4k2Ji", "name": "postgres-rag-runtime" } }
@@ -44,7 +44,7 @@
       "name": "Validate Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-840, 0]
+      "position": [-300, 0]
     },
     {
       "parameters": {
@@ -59,7 +59,7 @@
       "name": "Input Valid?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [-620, 0]
+      "position": [-100, 0]
     },
     {
       "parameters": { "jsCode": "return [{ json: { status: 'stopped', reason: $json.stop_reason || 'invalid_input' } }];" },
@@ -67,7 +67,7 @@
       "name": "Drop Invalid Update",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-620, 320]
+      "position": [-300, 520]
     },
     {
       "parameters": {
@@ -77,7 +77,7 @@
       "name": "Validate Runtime Settings",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-360, 0]
+      "position": [100, 0]
     },
     {
       "parameters": {
@@ -92,7 +92,7 @@
       "name": "Runtime Ready?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [-100, 0]
+      "position": [300, 0]
     },
     {
       "parameters": {
@@ -104,7 +104,7 @@
       "name": "Claim Update",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2,
-      "position": [160, 0],
+      "position": [500, 0],
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
       "credentials": { "postgres": { "id": "UQGPzpM8nYf4k2Ji", "name": "postgres-rag-runtime" } }
@@ -117,7 +117,7 @@
       "name": "Normalize Claim",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [420, 0]
+      "position": [700, 0]
     },
     {
       "parameters": {
@@ -132,7 +132,7 @@
       "name": "Claim Won?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [680, 0]
+      "position": [900, 280]
     },
     {
       "parameters": { "jsCode": "return [{ json: { status: 'duplicate', reason: 'duplicate_update_suppressed' } }];" },
@@ -140,7 +140,7 @@
       "name": "Duplicate Stop",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 320]
+      "position": [700, 520]
     },
     {
       "parameters": {
@@ -150,7 +150,7 @@
       "name": "Prepare Query Embedding Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [900, 0],
+      "position": [700, 280],
       "onError": "continueErrorOutput"
     },
     {
@@ -178,7 +178,7 @@
       "name": "Query Embedding",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1120, 0],
+      "position": [500, 280],
       "onError": "continueErrorOutput"
     },
     {
@@ -189,7 +189,7 @@
       "name": "Prepare Retrieval Query",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1340, 0],
+      "position": [300, 280],
       "onError": "continueErrorOutput"
     },
     {
@@ -202,7 +202,7 @@
       "name": "PGVector Retrieval",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2,
-      "position": [1560, 0],
+      "position": [100, 280],
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
       "credentials": { "postgres": { "id": "UQGPzpM8nYf4k2Ji", "name": "postgres-rag-runtime" } }
@@ -215,7 +215,7 @@
       "name": "Filter Evidence",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1780, 0]
+      "position": [-100, 280]
     },
     {
       "parameters": {
@@ -230,7 +230,7 @@
       "name": "Evidence Available?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [2000, 0]
+      "position": [-300, 280]
     },
     {
       "parameters": {
@@ -240,7 +240,7 @@
       "name": "Build Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2220, 0]
+      "position": [-500, 280]
     },
     {
       "parameters": {
@@ -250,7 +250,7 @@
       "name": "Prepare Chat Completion Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2440, -100],
+      "position": [-500, 560],
       "onError": "continueErrorOutput"
     },
     {
@@ -279,7 +279,7 @@
       "name": "Chat Completion",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2440, 0],
+      "position": [-300, 560],
       "onError": "continueErrorOutput",
       "credentials": { "deepSeekApi": { "id": "cwFLpHo6dphUnk0Y", "name": "DeepSeek account" } }
     },
@@ -291,7 +291,7 @@
       "name": "Validate Citation & Attach Sources",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2660, 0]
+      "position": [-100, 560]
     },
     {
       "parameters": { "jsCode": "const value = $input.first().json; const trace = value.grounding_trace || {}; const validator_result = trace.support_gate_status === 'insufficient_query_overlap' ? 'support_gate_abstention' : 'no_retrieval_evidence'; return [{ json: { ...value, grounding_trace: { ...trace, model_response_status: 'not_called', validator_result }, text: 'Informasi tidak ditemukan di dokumen resmi.', response_status: 'abstained' } }];" },
@@ -299,7 +299,7 @@
       "name": "Build Abstention Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2220, 300]
+      "position": [-500, 760]
     },
     {
       "parameters": { "jsCode": "const item = $input.first() || {}; const branch = item.json || {}; const base = $('Validate Input').first()?.json || $('Normalize Update').first()?.json || {}; const error = item.error || branch.error || {}; const raw = [error.message, error.description, error.name, error.statusCode, error.httpCode, error.cause?.message, error.cause?.status, branch.message, branch.description].filter((value) => value !== undefined && value !== null).join(' '); const signal = `${branch.runtime_error || ''} ${raw}`.toLowerCase(); const httpStatus = Number(error.statusCode || error.httpCode || error.cause?.status || branch.statusCode || 0); const stageNames = ['Settings Query', 'Claim Update', 'Query Embedding', 'PGVector Retrieval', 'Prepare Chat Completion Request', 'Chat Completion']; const executedStages = stageNames.filter((name) => { try { return $('' + name).isExecuted === true; } catch (_) { return false; } }); const lastStage = executedStages.at(-1) || ''; const error_category = branch.error_category || branch.runtime_error || (signal.includes('ai_budget_exhausted') || signal.includes('budget') ? 'ai_budget_exhausted' : signal.includes('timeout') || signal.includes('timed out') || signal.includes('deadline') ? 'provider_timeout' : signal.includes('embedding') || signal.includes('ollama') || lastStage === 'Query Embedding' ? 'embedding_request_failure' : signal.includes('retriev') || signal.includes('vector') || lastStage === 'PGVector Retrieval' ? 'retrieval_failure' : httpStatus === 401 || httpStatus === 403 ? 'chat_credential_rejected' : httpStatus === 400 ? 'chat_request_rejected' : httpStatus === 404 ? 'chat_endpoint_not_found' : httpStatus === 429 ? 'chat_rate_limited' : signal.includes('chat') || signal.includes('completion') || signal.includes('deepseek') || lastStage === 'Chat Completion' ? 'chat_completion_failure' : signal.includes('claim') || signal.includes('update') || lastStage === 'Claim Update' ? 'claim_update_failure' : lastStage ? `workflow_stage_failure:${lastStage.toLowerCase().replace(/[^a-z0-9]+/g, '_')}` : 'provider_or_runtime_failure'); return [{ json: { ...base, text: 'Layanan pengetahuan sedang tidak tersedia. Silakan coba lagi nanti.', response_status: 'unavailable', error_category } }];" },
@@ -307,7 +307,7 @@
       "name": "Build Service-Unavailable Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2000, 500]
+      "position": [-300, 760]
     },
     {
       "parameters": { "jsCode": "const value = $input.first()?.json || {}; const deliverySource = value.item7_deterministic_answer || value.text || ''; const text = String(deliverySource).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); return [{ json: { ...value, text, delivery_context_ready: true } }];" },
@@ -315,7 +315,7 @@
       "name": "Prepare Telegram Delivery",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3540, 0]
+      "position": [700, 560]
     },
     {
       "parameters": { "jsCode": "const value = $input.first()?.json || {}; const trace = value.grounding_trace || {}; const candidates = String(trace.retrieved_candidates || '').slice(0, 900); const diagnostic_code = [`retrieved=${Number(trace.retrieved_candidate_count || 0)}`, `candidates=${candidates || 'none'}`, `filtered=${Number(trace.filtered_evidence_count || 0)}`, `prompt=${Number(trace.prompt_evidence_count || 0)}`, `sources=${Number(trace.retrieved_source_count || 0)}`, `query_terms=${Number(trace.query_term_count || 0)}`, `matched_terms=${Number(trace.matched_query_term_count || 0)}`, `gate=${String(trace.support_gate_status || 'unknown')}`, `model=${String(trace.model_response_status || 'unknown')}`, `validator=${String(trace.validator_result || 'unknown')}`, `response=${String(value.response_status || 'unknown')}`].join(';'); return [{ json: { ...value, diagnostic_code, diagnostic_duration_ms: value.start_ts ? Date.now() - Number(value.start_ts) : null } }];" },
@@ -323,7 +323,7 @@
       "name": "Prepare Grounding Diagnostic",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2880, 0]
+      "position": [100, 560]
     },
     {
       "parameters": {
@@ -335,7 +335,7 @@
       "name": "Record Grounding Diagnostic",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2,
-      "position": [3100, 0],
+      "position": [300, 560],
       "alwaysOutputData": true,
       "onError": "continueRegularOutput",
       "credentials": { "postgres": { "id": "UQGPzpM8nYf4k2Ji", "name": "postgres-rag-runtime" } }
@@ -346,7 +346,7 @@
       "name": "Restore Grounding Diagnostic Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3320, 0]
+      "position": [500, 560]
     },
     {
       "parameters": {
@@ -360,7 +360,7 @@
       "name": "Telegram Send",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [3760, 0],
+      "position": [900, 560],
       "onError": "continueErrorOutput",
       "credentials": { "telegramApi": { "id": "4EnZ1tJlkUpSzLwe", "name": "telegram-demo-bot" } }
     },
@@ -372,7 +372,7 @@
       "name": "Delivery Success",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2880, -220]
+      "position": [100, 840]
     },
     {
       "parameters": {
@@ -384,7 +384,7 @@
       "name": "Mark Delivered",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2,
-      "position": [3100, -220],
+      "position": [300, 840],
       "alwaysOutputData": true,
       "credentials": { "postgres": { "id": "UQGPzpM8nYf4k2Ji", "name": "postgres-rag-runtime" } }
     },
@@ -394,7 +394,7 @@
       "name": "Restore Success Event Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3320, -220]
+      "position": [500, 840]
     },
     {
       "parameters": {
@@ -406,7 +406,7 @@
       "name": "Record Safe Event",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2,
-      "position": [3540, -220],
+      "position": [700, 840],
       "alwaysOutputData": true,
       "credentials": { "postgres": { "id": "UQGPzpM8nYf4k2Ji", "name": "postgres-rag-runtime" } }
     },
@@ -416,7 +416,7 @@
       "name": "Restore Failure Event Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3320, 320]
+      "position": [500, 1080]
     },
     {
       "parameters": {
@@ -426,7 +426,7 @@
       "name": "Delivery Failure",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2880, 320]
+      "position": [100, 1080]
     },
     {
       "parameters": {
@@ -438,7 +438,7 @@
       "name": "Mark Delivery Unknown",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2,
-      "position": [3100, 320],
+      "position": [300, 1080],
       "alwaysOutputData": true,
       "credentials": { "postgres": { "id": "UQGPzpM8nYf4k2Ji", "name": "postgres-rag-runtime" } }
     },
@@ -452,7 +452,7 @@
       "name": "Record Delivery Failure",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2,
-      "position": [3540, 320],
+      "position": [700, 1080],
       "alwaysOutputData": true,
       "credentials": { "postgres": { "id": "UQGPzpM8nYf4k2Ji", "name": "postgres-rag-runtime" } }
     }
@@ -504,3 +504,5 @@
   "tags": [],
   "versionId": "m7-cloud-chat-local-embedding-v1"
 }
+
+
