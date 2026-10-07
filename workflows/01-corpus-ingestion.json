@@ -8,7 +8,7 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [-720, 0]
+      "position": [-700, 0]
     },
     {
       "parameters": {
@@ -38,7 +38,7 @@
       "name": "Validate RAG Settings",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-280, 0],
+      "position": [-300, 0],
       "onError": "continueErrorOutput"
     },
     {
@@ -51,7 +51,7 @@
       "name": "Read Corpus Markdown",
       "type": "n8n-nodes-base.readBinaryFiles",
       "typeVersion": 1,
-      "position": [-60, 0],
+      "position": [-100, 0],
       "onError": "continueErrorOutput"
     },
     {
@@ -62,7 +62,7 @@
       "name": "Build Manifest & Validate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [160, 0],
+      "position": [100, 0],
       "onError": "continueErrorOutput"
     },
     {
@@ -73,7 +73,7 @@
       "name": "Chunk Documents",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [380, 0],
+      "position": [300, 0],
       "onError": "continueErrorOutput"
     },
     {
@@ -113,7 +113,7 @@
       "name": "Embedding Request",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [740, 0],
+      "position": [700, 0],
       "executeOnce": true,
       "onError": "continueErrorOutput"
     },
@@ -125,7 +125,7 @@
       "name": "Pair & Validate Embeddings",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [960, 0],
+      "position": [900, 0],
       "onError": "continueErrorOutput"
     },
     {
@@ -136,7 +136,7 @@
       "name": "Prepare Ingest Batch",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1180, 0],
+      "position": [1100, 0],
       "onError": "continueErrorOutput"
     },
     {
@@ -149,7 +149,7 @@
       "name": "Staging: Create Version",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [1400, 0],
+      "position": [1100, 300],
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
       "credentials": { "postgres": { "id": "BRjgs0DWm9bmWw4I", "name": "postgres-rag-ingest" } }
@@ -162,7 +162,7 @@
       "name": "Restore Ingest Batch",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1540, 0],
+      "position": [900, 300],
       "onError": "continueErrorOutput"
     },
     {
@@ -175,7 +175,7 @@
       "name": "Staging: Insert Chunks",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [1680, 0],
+      "position": [700, 300],
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
       "credentials": { "postgres": { "id": "BRjgs0DWm9bmWw4I", "name": "postgres-rag-ingest" } }
@@ -190,7 +190,7 @@
       "name": "Load Candidate Evidence",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [1820, 0],
+      "position": [500, 300],
       "executeOnce": true,
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
@@ -204,7 +204,7 @@
       "name": "Validate Candidate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1960, 0],
+      "position": [300, 300],
       "onError": "continueErrorOutput"
     },
     {
@@ -217,7 +217,7 @@
       "name": "Activate Corpus (Atomic)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [2200, 0],
+      "position": [100, 300],
       "onError": "continueErrorOutput",
       "credentials": { "postgres": { "id": "BRjgs0DWm9bmWw4I", "name": "postgres-rag-ingest" } }
     },
@@ -229,7 +229,7 @@
       "name": "Failure Marking",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1180, 340]
+      "position": [-100, 600]
     },
     {
       "parameters": {
@@ -244,7 +244,7 @@
       "name": "Candidate Exists?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [1400, 340]
+      "position": [100, 600]
     },
     {
       "parameters": {
@@ -256,7 +256,7 @@
       "name": "Failure: Mark Candidate",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [1680, 280],
+      "position": [300, 600],
       "credentials": { "postgres": { "id": "BRjgs0DWm9bmWw4I", "name": "postgres-rag-ingest" } }
     },
     {
@@ -265,7 +265,7 @@
       "name": "Failure: End",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [1680, 460]
+      "position": [300, 800]
     }
   ],
   "connections": {
